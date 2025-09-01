@@ -27,7 +27,6 @@ end
     Vehicle(iᵛ::Int, qᵛ::Float64, π::Float64, R::Vector{Route})
     A 'Vehicle' has index iᵛ, capacity qᵛ, operating cost π per unit distance, and a vector of routes R.
 """
-# Vehicle has index, capacity, operating cost, and a vector of routes
 mutable struct Vehicle
     iᵛ::Int                   # Vehicle index
     qᵛ::Float64               # Vehicle capacity
