@@ -77,6 +77,7 @@ mutable struct Solution
     C::Vector{Customer}       # Vector of customers
     D::Vector{Depot}          # Vector of depots
     A::Vector{Arc}            # Vector of arcs 
+    c::Float64                # Cost
 end
 
   
