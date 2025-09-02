@@ -43,10 +43,10 @@ end
     Solution(C::Vector{Customer}, D::Vector{Depot}, A::Vector{Arc}, c::Float64)
     A 'Solution' consists of vectors of customers C, depots D, and arcs A with cost c.
 """
+# TODO: Update Definition
 mutable struct Solution
-    C::Vector{Customer}       # Vector of customers
-    D::Vector{Depot}          # Vector of depots
-    A::Vector{Arc}            # Vector of arcs 
+    N::Vector{Node}           # Vector of Nodes
+    A::Matrix{Arc}            # Matrix of arcs 
     c::Float64                # Cost
 end
 
