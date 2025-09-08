@@ -37,6 +37,7 @@ function visualize(G; backend=gr;
 
     return p
 end
+# TODO: This is way too complex; can be significantly simplified. It also looks like a first draft of a LLM. Let's discuss it in the next meeting.
 
 # also can add something to show lables and annotate the node indices for node in N
 
