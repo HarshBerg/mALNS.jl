@@ -1,12 +1,13 @@
 module mALNS
 
-# Import packages here
+# TODO: Import packages here
 
 
-# Include files here
-incude(datastructure.jl)
+# TODO: Include files here
+incude("datastructure.jl")
+include("initialize.jl")
 
-# Export function here
-
+# TODO: Export function here
+export visualize
 
 end
