@@ -5,12 +5,12 @@
     and vehicle index `v` serving this node.
 """
 mutable struct Node
-    i::Int                   # node index
-    x::Float64               # x-Coordinate of the node
-    y::Float64               # y-Coordinate of the node
-    q::Float64               # node demand
-    t::Int                   # Index of the tail node (depot)
-    h::Int                   # Index of the head node (depot)
+    i::Int                   # Index
+    x::Int                   # Abcissa (x-coordinate) 
+    y::Int                   # Ordinate (y-coordinate)
+    q::Int                   # Demand
+    t::Int                   # Index of the tail node
+    h::Int                   # Index of the head node
     v::Int                   # Vehicle index serving this node
     Node(i, x, y, q) = Node(i, x, y, q, 0, 0, 0)
 end
@@ -28,19 +28,20 @@ end
 """
     Vehicle(i::Int, s::Int, e::Int, q::Float64, n::Int, r::Float64, l::Float64, x::Vector{Float64}, y::Vector{Float64})
     A 'Vehicle' with index `i`, start node index `s`, end node index `e`, capacity `q`, number of customers served `n`,
-    total demand served `r`, total length of the route `l`, and coordinates of the route `(x, y)`.
+    total demand served `r`, total length of the route `l`, and coordinates of the route centroid `(x, y)`.
 """
+# TODO: Update definition
 mutable struct Vehicle
     i::Int                    # Vehicle index
+    q::Int                    # Vehicle capacity
     s::Int                    # Start node index
     e::Int                    # End node index
-    q::Float64                # Vehicle capacity
     n::Int                    # Number of customers served
-    r::Float64                # Total demand served by the route
-    l::Float64                # Total length of the route
-    x::Vector{Float64}        # abscissa (x-coordinates) 
-    y::Vector{Float64}        # ordinate (y-coordinates)
-    Vehicle(i, s, e, q) = Vehicle(i, s, e, q, 0, 0.0, 0.0, Float64[], Float64[])
+    l::Int                    # Total vehicle load
+    x::Float64                # Centroid abscissa (x-coordinate) 
+    y::Float64                # Centroid ordinate (y-coordinate)
+    c::Float64                # Cost
+    Vehicle(i, q) = Vehicle(i, q, 1, 1, 0, 0, 0., 0., 0.)
 end
 
 """
