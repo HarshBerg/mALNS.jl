@@ -31,6 +31,7 @@ function build(instance::String; dir=joinpath(dirname(@__DIR__), "instances"))
     # vehicles
     d = 0
     for i ∈ 1:n d += N[i].q end
+    q = parse(Int, df[k₂,2])
     m = d ÷ q + 1
     V = Vector{Vehicle}(undef, m)
     for i in 1:m V[i] = Vehicle(i, q) end
