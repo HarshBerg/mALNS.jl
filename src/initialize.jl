@@ -10,7 +10,6 @@ function build(instance::String; dir=joinpath(dirname(@__DIR__), "instances"))
     # nodes
     n = parse(Int, df[k₁,2])
     N = Vector{Node}(undef, n)
-    # TODO: check outcomes for x, y, and q
     for i in 1:n
         x = parse(Int, split(df[k₃+i,1])[2])
         y = parse(Int, split(df[k₃+i,1])[3])
@@ -46,6 +45,7 @@ end
 """
 
 """
+# TODO
 function clarke_wright_savings(G)
     N, A, V = G
     solution = Solution(G...)
