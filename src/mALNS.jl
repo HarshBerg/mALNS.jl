@@ -1,4 +1,5 @@
 module mALNS
+
 # TODO: Import packages here
 using CSV
 using Revise
@@ -9,6 +10,6 @@ include("datastructure.jl")
 include("initialize.jl")
 
 # TODO: Export function here
-export build, initialize, visualize
+export build
 
 end
