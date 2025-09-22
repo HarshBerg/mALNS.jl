@@ -39,19 +39,26 @@ mutable struct Vehicle
     l::Int                    # Total vehicle load
     x::Float64                # Centroid abscissa (x-coordinate) 
     y::Float64                # Centroid ordinate (y-coordinate)
-    c::Float64                # Cost
-    Vehicle(i, q) = new(i, q, 1, 1, 0, 0, 0., 0., 0.)
+    Vehicle(i, q) = new(i, q, 1, 1, 0, 0, 0., 0.)
 end
 
 """
-    Solution(N::Vector{Node}, A::Matrix{Arc}, V::Vector{Vehicle}, c::Float64, p::Float64)
-    A 'Solution' consisting of a vector of nodes `N`, a matrix of arcs `A`, a vector of vehicles `V`, total cost `c`, and penalty `p`.
+    Solution(N::Vector{Node}, A::Matrix{Arc}, V::Vector{Vehicle})
+A 'Graph' consists of a vector of nodes `N`, a matrix of arcs `A`, and a vector of vehicles `V`.
+"""
+struct Graph
+    N::Vector{Node}     # nodes
+    A::Matrix{Arc}      # arcs
+    V::Vector{Vehicle}  # vehicles
+end
+
+"""
+    Solution(G::Graph, c::Float64, p::Float64)
+    A 'Solution' pertains to a graph `G` with total cost `c` and penalty `p`.
 """
 mutable struct Solution
-    N::Vector{Node}           # Vector of Nodes
-    A::Matrix{Arc}            # Matrix of arcs 
-    V::Vector{Vehicle}        # Vector of Vehicles
+    G::Graph                  # graph
     c::Float64                # Cost
     p::Float64                # Penalty
-    Solution(N, A, V) = new(N, A, V, 0., 0.)
+    Solution(G) = new(G, 0., 0.)
 end
