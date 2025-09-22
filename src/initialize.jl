@@ -6,20 +6,18 @@ function build(instance::String; dir=joinpath(dirname(@__DIR__), "instances"))
     k₂ = findfirst(contains("CAPACITY"), df[:,1])
     k₃ = findfirst(contains("NODE_COORD_SECTION"), df[:,1])
     k₄ = findfirst(contains("DEMAND_SECTION"), df[:,1])
-
     # nodes
     n = parse(Int, df[k₁,2])
     N = Vector{Node}(undef, n)
-    for i in 1:n
+    for i ∈ 1:n
         x = parse(Int, split(df[k₃+i,1])[2])
         y = parse(Int, split(df[k₃+i,1])[3])
         q = parse(Int, split(df[k₄+i,1])[2])
         N[i] = Node(i, x, y, q)
     end
-
     # arcs
     A = Matrix{Arc}(undef, n, n)
-    for i in 1:n
+    for i ∈ 1:n
         xᵢ = N[i].x
         yᵢ = N[i].y 
         for j in 1:n
@@ -29,16 +27,15 @@ function build(instance::String; dir=joinpath(dirname(@__DIR__), "instances"))
             A[i,j] = Arc(i, j, c)
         end
     end
-
     # vehicles
     d = 0
     for i ∈ 1:n d += N[i].q end
     q = parse(Int, df[k₂,2])
     m = d ÷ q + 1
     V = Vector{Vehicle}(undef, m)
-    for i in 1:m V[i] = Vehicle(i, q) end
+    for i ∈ 1:m V[i] = Vehicle(i, q) end
     # create graph
-    G = (N, A, V)
+    G = Graph(N, A, V)
     return G
 end
 
@@ -47,64 +44,85 @@ end
 """
 # TODO
 function clarke_wright_savings(G)
-    N, A, V = G
-    solution = Solution(G...)
-    n = length(N)
+    s = Solution(G)
+    G = s.G
+    N = G.N
+    A = G.A
+    V = G.V
+    
+    K = eachindex(N)
     q = V[1].q
 
     # Initialise each customer in its own route
     # The depot is node 1
 
-    for i in 2:n
-        solution.N[i].v = i - 1                # Each customer assigned to a unique vehicle
-        solution.N[i].t = 1                    # depot is tail node
-        solution.N[i].h = 1                    # depot is head node
-        solution.V[i-1].l = solution.N[i].q    # vehicle load is customer demand
-        solution.V[i-1].n = 1                  # one customer per vehicle
+    # TODO: If you have insertnode function, we can directly use that here instead of doing all these updates
+    for i ∈ K
+        if isone(i) continue end 
+        n = s.N[i]
+        v = s.V[i-1]
+        n.v = i - 1                # Each customer assigned to a unique vehicle
+        n.t = 1                    # depot is tail node
+        n.h = 1                    # depot is head node
+        v.l = s.N[i].q             # vehicle load is customer demand
+        v.n = 1                    # one customer per vehicle
+        # TODO
+        #=
+        v.x = ?
+        v.y = ?
+        s.c = ?
+        =#
     end
 
     # Calculate savings for each pair of customers
-    savings = []
-    for i in 2:n
-        for j in i+1:n
-            s = A[i,1].c + A[1,j].c - A[i,j].c
-            push!(savings, (s, i, j))
+    Δ = [] # TODO: This is type unstable vector, defined as, Δ = Any{}[]. Instead use Δ as a matrix, defined as Δ = zeros(Float64, (K,K))
+    for i ∈ K
+        if isone(i) continue end
+        for j ∈ K
+            if isone(j) continue end
+            if isequal(i,j) continue end
+            δ = A[i,1].c + A[1,j].c - A[i,j].c
+            push!(Δ, (δ, i, j)) # TODO: Consequently, this changes to Δ[i,j] = δ
         end
     end
 
+    # TODO: Update this for matrix sort
     # Sort savings in descending order
-    savings = sort!(savings, by = x -> -x[1], rev = true) # descending order preseves forward stability
+    Δ = sort!(Δ, by = x -> -x[1], rev = true) # descending order preseves forward stability
 
+    # TODO: Use removennode and insertnode functions here
     # Merge routes based on savings
-    for (s, i, j) in savings
-        vi = solution.N[i].v
-        vj = solution.N[j].v
+    for (s, i, j) in Δ
+        vi = s.N[i].v
+        vj = s.N[j].v
 
-        if vi != vj && solution.V[vi].l + solution.V[vj].l <= q  # check if different routes and merge isf feasible
-            if solution.N[i].t == 1 && solution.N[j].h == 1      # i is at the end of its route and j is at the start of its route
+        if vi != vj && s.V[vi].l + s.V[vj].l <= q  # check if different routes and merge isf feasible
+            if s.N[i].t == 1 && s.N[j].h == 1      # i is at the end of its route and j is at the start of its route
 
                 # Merge route of j into route of i
-                solution.v[vi].l += solution.V[vj].l
-                solution.V[vi].n += solution.V[vj].n
+                s.v[vi].l += s.V[vj].l
+                s.V[vi].n += s.V[vj].n
 
                 # Update 
-                solution.N[i].h = j
-                solution.N[j].t = i
+                s.N[i].h = j
+                s.N[j].t = i
 
+                # TODO: This reassigns only one node, when in fact we need to merge the two routes
                 # Reassign nodes in route j to route i
-                for node in solution.N
-                    if node.v == vj
-                        node.v = vi
+                for n in s.N
+                    if n.v == vj
+                        n.v = vi
                     end
                 end
 
                 # Reset vehicle vj
-                solution.V[vj].l = 0
-                solution.V[vj].n = 0
+                s.V[vj].l = 0
+                s.V[vj].n = 0
             end
         end
     end
 
+    # TODO: If you replace the above code with removenode and insertnode, these calculalations will not be needed.
     # calculalate the total cost
     total_cost = 0.0
     for v in solution.V
