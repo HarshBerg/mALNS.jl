@@ -42,8 +42,7 @@ end
 """
 
 """
-# TODO
-function clarke_wright_savings(G)
+function initialize(G)
     s = Solution(G)
     G = s.G
     N = G.N
@@ -56,37 +55,18 @@ function clarke_wright_savings(G)
     # Initialise each customer in its own route
     # The depot is node 1
 
-    # TODO: If you have insertnode function, we can directly use that here instead of doing all these updates
-    for i ∈ K
-        if isone(i) continue end 
-        n = s.N[i]
-        v = s.V[i-1]
-        n.v = i - 1                # Each customer assigned to a unique vehicle
-        n.t = 1                    # depot is tail node
-        n.h = 1                    # depot is head node
-        v.l = s.N[i].q             # vehicle load is customer demand
-        v.n = 1                    # one customer per vehicle
-        # TODO
-        #=
-        v.x = ?
-        v.y = ?
-        s.c = ?
-        =#
-    end
-
     # Calculate savings for each pair of customers
-    Δ = [] # TODO: This is type unstable vector, defined as, Δ = Any{}[]. Instead use Δ as a matrix, defined as Δ = zeros(Float64, (K,K))
+    Δ = zeros(Float64, (K,K)) # TODO: This is type unstable vector, defined as, Δ = Any{}[]. Instead use Δ as a matrix, defined as Δ = zeros(Float64, (K,K))
     for i ∈ K
         if isone(i) continue end
         for j ∈ K
             if isone(j) continue end
             if isequal(i,j) continue end
             δ = A[i,1].c + A[1,j].c - A[i,j].c
-            push!(Δ, (δ, i, j)) # TODO: Consequently, this changes to Δ[i,j] = δ
+            push!(Δ, (δ, i, j)) 
         end
     end
 
-    # TODO: Update this for matrix sort
     # Sort savings in descending order
     Δ = sort!(Δ, by = x -> -x[1], rev = true) # descending order preseves forward stability
 
@@ -99,7 +79,7 @@ function clarke_wright_savings(G)
         if vi != vj && s.V[vi].l + s.V[vj].l <= q  # check if different routes and merge isf feasible
             if s.N[i].t == 1 && s.N[j].h == 1      # i is at the end of its route and j is at the start of its route
 
-                # Merge route of j into route of i
+               # Merge route of j into route of i
                 s.v[vi].l += s.V[vj].l
                 s.V[vi].n += s.V[vj].n
 
@@ -122,42 +102,6 @@ function clarke_wright_savings(G)
         end
     end
 
-    # TODO: If you replace the above code with removenode and insertnode, these calculalations will not be needed.
-    # calculalate the total cost
-    total_cost = 0.0
-    for v in solution.V
-        if v.l > 0        # only consider active vehicles
-           path = [1]    # start from depot
-           current = 1
-           first_node = -1
-            for k in 2:n 
-                if solution.N[k].v == v.i && solution.N[k].t == current
-                    first_node = k
-                    break
-                end
-            end
-            if first_node == -1
-            push!(path, first_node)
-            current = first_node
-                while true 
-                next_node = solution.N[current].h
-                    if next_node == 1
-                        break
-                    end
-                end
-                push!(path, next_node)
-                current = next_node
-            end
-        end
-        push!(path, 1)  # return to depot
-
-        # Calculate cost of arcs
-        for k in 1:length(path)-1
-            i = path[k]
-            j = path[k+1]
-            total_cost += A[i,j].c
-        end
-    end
-    solution.c = total_cost
+     
     return solution
 end
