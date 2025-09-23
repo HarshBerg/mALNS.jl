@@ -28,12 +28,9 @@ function build(instance::String; dir=joinpath(dirname(@__DIR__), "instances"))
         end
     end
     # vehicles
-    d = 0
-    for i ∈ 1:n d += N[i].q end
     q = parse(Int, df[k₂,2])
-    m = d ÷ q + 1
-    V = Vector{Vehicle}(undef, m)
-    for i ∈ 1:m V[i] = Vehicle(i, q) end
+    V = Vector{Vehicle}(undef, n-1)
+    for i ∈ 1:(n-1) V[i] = Vehicle(i, q) end
     # create graph
     G = Graph(N, A, V)
     return G
@@ -42,66 +39,43 @@ end
 """
 
 """
-function initialize(G)
+function initialize(instance::String; dir=joinpath(dirname(@__DIR__), "instances"))
+    G = build(instance; dir=dir)
     s = Solution(G)
     G = s.G
     N = G.N
     A = G.A
     V = G.V
-    
     K = eachindex(N)
-    q = V[1].q
-
-    # Initialise each customer in its own route
-    # The depot is node 1
-
-    # Calculate savings for each pair of customers
-    Δ = zeros(Float64, (K,K)) # TODO: This is type unstable vector, defined as, Δ = Any{}[]. Instead use Δ as a matrix, defined as Δ = zeros(Float64, (K,K))
+    # initialize one-to-one routes
+    d = N[1]
+    for k ∈ K
+        n = N[k]
+        if isdepot(n) continue end
+        v = V[k-1]
+        insertnode!(n, d, d, v, s)
+    end
+    # calculate savings for each pair of customers
+    Δ = zeros(Float64, (K,K))
     for i ∈ K
         if isone(i) continue end
         for j ∈ K
             if isone(j) continue end
             if isequal(i,j) continue end
-            δ = A[i,1].c + A[1,j].c - A[i,j].c
-            push!(Δ, (δ, i, j)) 
+            if j > i continue end
+            δ = (A[i,1].c + A[1,j].c) - A[i,j].c
+            Δ[i,j] = δ
         end
     end
-
-    # Sort savings in descending order
-    Δ = sort!(Δ, by = x -> -x[1], rev = true) # descending order preseves forward stability
-
-    # TODO: Use removennode and insertnode functions here
-    # Merge routes based on savings
-    for (s, i, j) in Δ
-        vi = s.N[i].v
-        vj = s.N[j].v
-
-        if vi != vj && s.V[vi].l + s.V[vj].l <= q  # check if different routes and merge isf feasible
-            if s.N[i].t == 1 && s.N[j].h == 1      # i is at the end of its route and j is at the start of its route
-
-               # Merge route of j into route of i
-                s.v[vi].l += s.V[vj].l
-                s.V[vi].n += s.V[vj].n
-
-                # Update 
-                s.N[i].h = j
-                s.N[j].t = i
-
-                # TODO: This reassigns only one node, when in fact we need to merge the two routes
-                # Reassign nodes in route j to route i
-                for n in s.N
-                    if n.v == vj
-                        n.v = vi
-                    end
-                end
-
-                # Reset vehicle vj
-                s.V[vj].l = 0
-                s.V[vj].n = 0
-            end
-        end
+    # perform feasible greedy merge
+    P = sortperm(vec(Δ), rev=true)
+    T = Tuple.(CartesianIndices(Δ)[P])
+    for (i,j) ∈ T
+        if iszero(Δ[i,j]) break end
+        # nodal feasibility check
+        # vehicular feasibility check
+        # merge
     end
+    return s
 
-     
-    return solution
 end
