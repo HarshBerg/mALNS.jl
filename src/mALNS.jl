@@ -7,6 +7,8 @@ using DataFrames
 
 # TODO: Include files here
 include("datastructure.jl")
+include("functions.jl")
+include("operations.jl")
 include("initialize.jl")
 
 # TODO: Export function here
