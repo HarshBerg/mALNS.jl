@@ -47,9 +47,9 @@ end
 A 'Graph' consists of a vector of nodes `N`, a matrix of arcs `A`, and a vector of vehicles `V`.
 """
 struct Graph
-    N::Vector{Node}     # nodes
-    A::Matrix{Arc}      # arcs
-    V::Vector{Vehicle}  # vehicles
+    N::Vector{Node}           # nodes
+    A::Matrix{Arc}            # arcs
+    V::Vector{Vehicle}        # vehicles
 end
 
 """
