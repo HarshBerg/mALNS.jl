@@ -11,6 +11,21 @@
 
 function vectorize(s::Solution)
     Z = Int[]
+    G = s.G
+    N = G.N
+    V = G.V
+    d = N[1]  
+    for v ϵ V
+        n =N[v.s]
+        push!(Z, d.i)  # depot index
+        for _ in 1:v.n
+            
+            push!(Z, n.i)  # customer node index
+            n = N[n.h]
+        end
+        push!(Z, d.i)  # depot index
+    end
+
     # TODO: add depot node index before start node index
     # TODO: loop over vehicles adding customer node indicies
     # TODO: add depot node index after end node index
