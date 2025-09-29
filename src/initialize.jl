@@ -83,7 +83,7 @@ function initialize(instance::String; dir=joinpath(dirname(@__DIR__), "instances
         if vᵢ.l + vⱼ.l > vᵢ.q continue end # Capacity constraint
 
         removenode!(nᵢ, N[nᵢ.t], d, vᵢ, s)
-        insertnode!(nᵢ, N[nᵢ.t], nᵢ, vᵢ, s)
+        insertnode!(nᵢ, N[nᵢ.t], nᵢ, vᵢ, s)  #error here
         removenode!(nⱼ, d, N[nⱼ.h], vⱼ, s)
         insertnode!(nⱼ, nᵢ, N[nᵢ.h], vᵢ, s)
     end
