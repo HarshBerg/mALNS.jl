@@ -72,9 +72,20 @@ function initialize(instance::String; dir=joinpath(dirname(@__DIR__), "instances
     T = Tuple.(CartesianIndices(Δ)[P])
     for (i,j) ∈ T
         if iszero(Δ[i,j]) break end
-        # nodal feasibility check
-        # vehicular feasibility check
-        # merge
+        nᵢ = N[i]   
+        nⱼ = N[j]
+        if nᵢ.h ≠ 1 || nⱼ.t ≠ 1 continue end # Node i must be the last in its route and Node j must be the first in its route
+        vᵢ = V[nᵢ.v]
+        vⱼ = V[nⱼ.v]
+
+        if vᵢ.i == vⱼ.i continue end # Vehicles must be different
+
+        if vᵢ.l + vⱼ.l > vᵢ.q continue end # Capacity constraint
+
+        removenode!(nᵢ, N[nᵢ.t], d, vᵢ, s)
+        insertnode!(nᵢ, N[nᵢ.t], nᵢ, vᵢ, s)
+        removenode!(nⱼ, d, N[nⱼ.h], vⱼ, s)
+        insertnode!(nⱼ, nᵢ, N[nᵢ.h], vᵢ, s)
     end
     return s
 
