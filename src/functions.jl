@@ -7,11 +7,11 @@
 
 @inline isclose(n::Node) = !iszero(n.v)
 
-@inline isequal(n::Node, m::Node) = isequal(n.i, m.i)
+@inline Base.isequal(n::Node, m::Node) = isequal(n.i, m.i)
 
 @inline isopt(v::Vehicle) = !iszero(v.n)
 
-@inline isequal(u::Vehicle, v::Vehicle) = isequal(u.i, v.i)
+@inline Base.isequal(u::Vehicle, v::Vehicle) = isequal(u.i, v.i)
 
 function vectorize(s::Solution)
     Z = Int[]
