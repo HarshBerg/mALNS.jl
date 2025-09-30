@@ -61,8 +61,7 @@ function initialize(instance::String; dir=joinpath(dirname(@__DIR__), "instances
         if isone(i) continue end
         for j ∈ K
             if isone(j) continue end
-            if isequal(i,j) continue end
-            if j > i continue end
+            if j ≥ i continue end
             δ = (A[i,1].c + A[1,j].c) - A[i,j].c
             Δ[i,j] = δ
         end
@@ -74,18 +73,30 @@ function initialize(instance::String; dir=joinpath(dirname(@__DIR__), "instances
         if iszero(Δ[i,j]) break end
         nᵢ = N[i]   
         nⱼ = N[j]
-        if nᵢ.h ≠ 1 || nⱼ.t ≠ 1 continue end # Node i must be the last in its route and Node j must be the first in its route
+        # nodal feasibility check
+        tᵢ = N[nᵢ.t]
+        tⱼ = N[nⱼ.t]
+        hᵢ = N[nᵢ.h]
+        hⱼ = N[nⱼ.h]
+        if iscustomer(tᵢ) && iscustomer(hᵢ) continue end
+        if iscustomer(tⱼ) && iscustomer(hⱼ) continue end
+        # vehicle feasibility check
         vᵢ = V[nᵢ.v]
         vⱼ = V[nⱼ.v]
-
-        if vᵢ.i == vⱼ.i continue end # Vehicles must be different
-
-        if vᵢ.l + vⱼ.l > vᵢ.q continue end # Capacity constraint
-
-        removenode!(nᵢ, N[nᵢ.t], d, vᵢ, s)
-        insertnode!(nᵢ, N[nᵢ.t], nᵢ, vᵢ, s)  #error here
-        removenode!(nⱼ, d, N[nⱼ.h], vⱼ, s)
-        insertnode!(nⱼ, nᵢ, N[nᵢ.h], vᵢ, s)
+        if isequal(vᵢ, vⱼ) continue end
+        if vᵢ.l + vⱼ.l > vᵢ.q continue end
+        # merge
+        k = vᵢ.n
+        for _ ∈ 1:k
+            nᵢ = #?
+            nⱼ = #?
+            tᵢ = N[nᵢ.t]
+            tⱼ = N[nⱼ.t]
+            hᵢ = N[nᵢ.h]
+            hⱼ = N[nⱼ.h]
+            removenode!(nᵢ, tᵢ, hᵢ, vᵢ, s)
+            #insertnode!(nᵢ, ?, ?, vᵢ, s)
+        end
     end
     return s
 
