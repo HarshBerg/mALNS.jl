@@ -14,6 +14,6 @@ include("initialize.jl")
 include("visualize.jl")
 
 # TODO: Export function here
-export build, initialize, visualize
+export build, initialize, f, visualize
 
 end
