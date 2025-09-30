@@ -87,17 +87,19 @@ function initialize(instance::String; dir=joinpath(dirname(@__DIR__), "instances
         if vᵢ.l + vⱼ.l > vᵢ.q continue end
         # merge
         k = vᵢ.n
+        φ = isdepot(hⱼ)
         for _ ∈ 1:k
-            nᵢ = #?
-            nⱼ = #?
+            nᵢ = N[vᵢ.s]
+            nⱼ = N[j]
             tᵢ = N[nᵢ.t]
             tⱼ = N[nⱼ.t]
             hᵢ = N[nᵢ.h]
             hⱼ = N[nⱼ.h]
             removenode!(nᵢ, tᵢ, hᵢ, vᵢ, s)
-            #insertnode!(nᵢ, ?, ?, vᵢ, s)
+            if φ insertnode!(nᵢ, nⱼ, hⱼ, vⱼ, s)
+            else insertnode!(nᵢ, tⱼ, nⱼ, vⱼ, s) end
+
         end
     end
     return s
-
 end
