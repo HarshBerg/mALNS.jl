@@ -1,11 +1,22 @@
 # Random Removal
 function randomnode!(rng::AbstractRNG, k::Int, s::Solution)
-    # TODO
+    N = s.G.N
+    W = [isdepot(n) ? 0 : 1 for n ∈ N]
+    V = s.G.V
+    for _ in 1:k
+        i = sample(rng, 1:length(N), Weights(W))
+        n = N[i]
+        t = N[n.t]
+        h = N[n.h]
+        v = V[n.v]
+        removenode!(n, t, h, v, s)
+        W[i] = 0
+    end
     return s
 end
 
 function randomarc!(rng::AbstractRNG, k::Int, s::Solution)
-    # TODO
+
     return s
 end
 
