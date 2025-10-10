@@ -1,8 +1,8 @@
 # Random Removal
 function randomnode!(rng::AbstractRNG, k::Int, s::Solution)
     N = s.G.N
-    W = [isdepot(n) ? 0 : 1 for n ∈ N]
     V = s.G.V
+    W = [isdepot(n) ? 0 : 1 for n ∈ N]
     for _ in 1:k
         i = sample(rng, 1:length(N), Weights(W))
         n = N[i]
@@ -16,7 +16,7 @@ function randomnode!(rng::AbstractRNG, k::Int, s::Solution)
 end
 
 function randomarc!(rng::AbstractRNG, k::Int, s::Solution)
-
+    # TODO
     return s
 end
 
@@ -26,7 +26,22 @@ function randomsegment!(rng::AbstractRNG, k::Int, s::Solution)
 end
 
 function randomvehicle!(rng::AbstractRNG, k::Int, s::Solution)
-    # TODO
+    N = s.G.N
+    V = s.G.V
+    W = ones(Int, length(V))
+    c = 0
+    while c < k
+        i = sample(rng, 1:length(V), Weights(W))
+        v = V[i]
+        for _ ∈ 1:v.n
+            n = N[v.s]
+            t = N[n.t]
+            h = N[n.h]
+            removenode!(n, t, h, v, s)
+            c += 1
+        end
+        W[i] = 0
+    end
     return s
 end
 
@@ -34,22 +49,21 @@ end
 function relatednode!(rng::AbstractRNG, k::Int, s::Solution)
     N = s.G.N
     V = s.G.V
-    X = fill(-Inf, length(N))
-    W = [isdepot(n) ? 0 : 1 for n ∈ N]
-    iᵖ = sample(rng, 1:length(N), Weights(W))
-    for i ∈ eachindex(W)
-        X[i] = isone(W[i]) ? relatedness(N[iᵖ], N[i]) : -Inf end
-
+    W = zeros(Float64, length(N))
+    p = sample(rng, 2:length(N))
+    for i ∈ eachindex(N)
+        if isone(i) continue end
+        W[i] = relatedness(N[p], N[i])
+    end
     for _ in 1:k
-        i = argmax(X)
+        i = sample(rng, 1:length(N), Weights(W))
         n = N[i]
         t = N[n.t]
         h = N[n.h]
         v = V[n.v]
         removenode!(n, t, h, v, s)
-        W[i] = 0
-        X[i] = -Inf
-    end  
+        W[i] = 0.
+    end
     return s
 end
 
@@ -64,28 +78,30 @@ function relatedsegment!(rng::AbstractRNG, k::Int, s::Solution)
 end
 
 function relatedvehicle!(rng::AbstractRNG, k::Int, s::Solution)
-    # TODO
+    N = s.G.N
+    V = s.G.V
+    p = sample(rng, 1:length(V))
+    W = [relatedness(V[p], V[i]) for i ∈ eachindex(V)]
+    c = 0
+    while c < k
+        i = sample(rng, 1:length(V), Weights(W))
+        v = V[i]
+        for _ ∈ 1:v.n
+            n = N[v.s]
+            t = N[n.t]
+            h = N[n.h]
+            removenode!(n, t, h, v, s)
+            c += 1
+        end
+        W[i] = 0
+    end
     return s
 end
 
 # Worst Removal
 function worstnode!(rng::AbstractRNG, k::Int, s::Solution)
     N = s.G.N
-    W = zeros(Float64, length(N))
     V = s.G.V
-    z = f(s)
-    for i ∈ eachindex(N)
-        if isone(i) continue end
-        n = N[i]
-        t = N[n.t]
-        h = N[n.h]
-        v = V[n.v]
-        removenode!(n, t, h, v, s)
-        z' = f(s)
-        W[i] = z' - z
-        insertnode!(n, t, h, v, s)
-    end
-    #OR 
     A = s.G.A
     W = zeros(Float64, length(N))
     for i ∈ eachindex(N)
@@ -93,16 +109,17 @@ function worstnode!(rng::AbstractRNG, k::Int, s::Solution)
         n = N[i]
         t = N[n.t]
         h = N[n.h]
-        v = V[n.v]
         W[i] = (A[t.i, n.i].c + A[n.i, h.i].c) - A[t.i, h.i].c
     end
     for _ in 1:k
-        i = argmax(W)
+        i = sample(rng, 1:length(N), Weights(W))
+        n = N[i]
+        t = N[n.t]
+        h = N[n.h]
+        v = V[n.v]
         removenode!(n, t, h, v, s)
-        z' = f(s)
-        W[i] = z - z'
-        insertnode!(n, t, h, v, s)
-    end
+        W[i] = 0.
+    end  
     return s
 end
 
@@ -117,6 +134,21 @@ function worstsegment!(rng::AbstractRNG, k::Int, s::Solution)
 end
 
 function worstvehicle!(rng::AbstractRNG, k::Int, s::Solution)
-    # TODO
+    N = s.G.N
+    V = s.G.V
+    W = [1 - v.l / v.q for v ∈ V]
+    c = 0
+    while c < k
+        i = sample(rng, 1:length(V), Weights(W))
+        v = V[i]
+        for _ ∈ 1:v.n
+            n = N[v.s]
+            t = N[n.t]
+            h = N[n.h]
+            removenode!(n, t, h, v, s)
+            c += 1
+        end
+        W[i] = 0
+    end
     return s
 end
