@@ -37,3 +37,17 @@ end
 @inline Base.deepcopy_internal(G::Graph, dict::IdDict) = Graph(Base.deepcopy_internal(G.N, dict), G.A, Base.deepcopy_internal(G.V, dict))
 
 @inline Base.deepcopy_internal(s::Solution, dict::IdDict) = Solution(Base.deepcopy_internal(s.G, dict), s.c, s.p)
+
+"""
+relatedness(n1::Node, n2::Node)
+Returns a measure of relatedness between two nodes 
+"""
+function relatedness(n1::Node, n2::Node)
+    x₁ = n1.x
+    y₁ = n1.y
+    x₂ = n2.x
+    y₂ = n2.y
+    l = sqrt((x₁ - x₂)^2 + (y₁ - y₂)^2)
+    z = 1/l
+    return z
+end
