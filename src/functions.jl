@@ -39,15 +39,40 @@ end
 @inline Base.deepcopy_internal(s::Solution, dict::IdDict) = Solution(Base.deepcopy_internal(s.G, dict), s.c, s.p)
 
 """
-relatedness(n1::Node, n2::Node)
-Returns a measure of relatedness between two nodes 
+    relatedness(n₁::Node, n₂::Node)
+
+Returns the relatedness between nodes `n₁` and `n₂`, calculated based on 
+their spatial proximity.
 """
-function relatedness(n1::Node, n2::Node)
-    x₁ = n1.x
-    y₁ = n1.y
-    x₂ = n2.x
-    y₂ = n2.y
-    l = sqrt((x₁ - x₂)^2 + (y₁ - y₂)^2)
-    z = 1/l
-    return z
+@inline function relatedness(n₁::Node, n₂::Node)
+    ϵ = 1e-3
+    d = abs(n₁.x - n₂.x) + abs(n₁.y - n₂.y)
+    r = 1 / (d + ϵ)
+    return r
+end
+
+"""
+    relatedness(a₁::Arc, a₂::Arc)
+
+Returns the relatedness between arcs `a₁` and `a₂`, calculated based on 
+their spatial proximity. 
+"""
+@inline function relatedness(a₁::Arc, a₂::Arc)
+    ϵ = 1e-3
+    d = abs(a₁.x - a₂.x) + abs(a₁.y - a₂.y)
+    r = 1 / (d + ϵ)
+    return r
+end
+
+"""
+    relatedness(v₁::Vehicle, v₂::Vehicle)
+
+Returns the relatedness between vehicles `v₁` and `v₂`, calculated based on 
+their spatial proximity. 
+"""
+@inline function relatedness(v₁::Vehicle, v₂::Vehicle)
+    ϵ = 1e-3
+    d = abs(v₁.x - v₂.x) + abs(v₁.y - v₂.y)
+    r = 1 / (d + ϵ)
+    return r
 end
