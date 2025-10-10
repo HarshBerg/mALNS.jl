@@ -22,7 +22,9 @@ end
 struct Arc
     i::Int                    # Index of the tail node
     j::Int                    # Index of the head node
-    c::Float64                # Cost of the arc                
+    c::Float64                # Cost of the arc
+    x::Float64                # Abcissa (x-coordinate)
+    y::Float64                # Ordinate (y-coordinate)       
 end
 
 """
