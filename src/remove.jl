@@ -16,13 +16,15 @@ function randomnode!(rng::AbstractRNG, k::Int, s::Solution)
 end
 
 function randomarc!(rng::AbstractRNG, k::Int, s::Solution)
+    N = s.G.N
     A = s.G.A
     V = s.G.V
-    N = s.G.N
-    W = [isequal(N[A.i].h, N[A.j]) ? 1 : 0 for A ∈ A]
+    C = CartesianIndices(G.A)
+    W = [isequal(N[a.i].h, N[a.j]) ? 1 : 0 for a ∈ A]
     for _ in 1:k
         i = sample(rng, 1:length(A), Weights(W))
-        n = N[A.i]
+        a = A[C[i]]
+        n = N[a.i]
         if iscustomer(n) && isclose(n) 
             t = N[n.t]
             h = N[n.h]
@@ -71,10 +73,12 @@ function relatednode!(rng::AbstractRNG, k::Int, s::Solution)
     N = s.G.N
     V = s.G.V
     W = zeros(Float64, length(N))
-    p = sample(rng, 2:length(N))
+    p = N[rand(rng, eachindex(N))]
     for i ∈ eachindex(N)
-        if isone(i) continue end
-        W[i] = relatedness(N[p], N[i])
+        n = G.N[i]
+        if isdepot(n) continue end
+        d = abs(n.x - p.x) + abs(n.y - p.y)
+        W[i] = 1 / (d + 1e-3)
     end
     for _ in 1:k
         i = sample(rng, 1:length(N), Weights(W))
@@ -89,27 +93,38 @@ function relatednode!(rng::AbstractRNG, k::Int, s::Solution)
 end
 
 function relatedarc!(rng::AbstractRNG, k::Int, s::Solution)
+    N = s.G.N
     A = s.G.A
-    isequal(N[A.i].v, N[A.j]) ? # we have to update A
     V = s.G.V
+    C = CartesianIndices(G.A)
     W = zeros(Float64, length(A))
-    p = sample(rng, 1:length(A))
+    p = A[rand(rng, C)]
+    pᵢ = N[p.i]
+    pⱼ = N[p.j]
     for i ∈ eachindex(A)
-        if isone(i) continue end
-        W[i] = relatedness(A[p], A[i])
+        a = A[C[i]]
+        aᵢ = N[a.i]
+        aⱼ = N[a.j]
+        d = abs((aᵢ.x + aⱼ.x) - (pᵢ.x + pⱼ.x)) + abs((aᵢ.y + aⱼ.y) - (pᵢ.y + pⱼ.y))
+        W[i] = isequal(aᵢ.h, aⱼ) ? (1 / (d + 1e-3)) : 0.
     end
     for _ in 1:k
         i = sample(rng, 1:length(A), Weights(W))
-        n = N[A.i]
-        t = N[n.t]
-        h = N[n.h]
-        v = V[n.v]
-        removenode!(n, t, h, v, s)
+        a = A[C[i]]
+        n = N[a.i]
+        if iscustomer(n) && isclose(n) 
+            t = N[n.t]
+            h = N[n.h]
+            v = V[n.v]
+            removenode!(n, t, h, v, s)
+        end
         n = N[A.j]
-        t = N[n.t]
-        h = N[n.h]
-        v = V[n.v]
-        removenode!(n, t, h, v, s)
+        if iscustomer(n) && isclose(n) 
+            t = N[n.t]
+            h = N[n.h]
+            v = V[n.v]
+            removenode!(n, t, h, v, s)
+        end
         W[i] = 0.
     end
     return s
@@ -123,8 +138,13 @@ end
 function relatedvehicle!(rng::AbstractRNG, k::Int, s::Solution)
     N = s.G.N
     V = s.G.V
-    p = sample(rng, 1:length(V))
-    W = [relatedness(V[p], V[i]) for i ∈ eachindex(V)]
+    p = V[rand(rng, eachindex(V))]
+    W = zeros(Float64, I)
+    for i ∈ eachindex(V)
+        v = G.V[i]
+        d = abs(v.x - p.x) + abs(v.y - p.y)
+        W[i] = 1 / (d + 1e-3)
+    end
     c = 0
     while c < k
         i = sample(rng, 1:length(V), Weights(W))
@@ -167,7 +187,30 @@ function worstnode!(rng::AbstractRNG, k::Int, s::Solution)
 end
 
 function worstarc!(rng::AbstractRNG, k::Int, s::Solution)
-    # TODO
+    N = s.G.N
+    A = s.G.A
+    V = s.G.V
+    C = CartesianIndices(G.A)
+    W = [isequal(N[a.i].h, N[a.j]) ? a.c : 0. for a ∈ A]
+    for _ in 1:k
+        i = sample(rng, 1:length(A), Weights(W))
+        a = A[C[i]]
+        n = N[a.i]
+        if iscustomer(n) && isclose(n) 
+            t = N[n.t]
+            h = N[n.h]
+            v = V[n.v]
+            removenode!(n, t, h, v, s)
+        end
+        n = N[A.j]
+        if iscustomer(n) && isclose(n) 
+            t = N[n.t]
+            h = N[n.h]
+            v = V[n.v]
+            removenode!(n, t, h, v, s)
+        end
+        W[i] = 0
+    end
     return s
 end
 
