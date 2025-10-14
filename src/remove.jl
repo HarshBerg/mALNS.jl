@@ -16,7 +16,28 @@ function randomnode!(rng::AbstractRNG, k::Int, s::Solution)
 end
 
 function randomarc!(rng::AbstractRNG, k::Int, s::Solution)
-    # TODO
+    A = s.G.A
+    V = s.G.V
+    N = s.G.N
+    W = [isequal(N[A.i].h, N[A.j]) ? 1 : 0 for A ∈ A]
+    for _ in 1:k
+        i = sample(rng, 1:length(A), Weights(W))
+        n = N[A.i]
+        if iscustomer(n) && isclose(n) 
+            t = N[n.t]
+            h = N[n.h]
+            v = V[n.v]
+            removenode!(n, t, h, v, s)
+        end
+        n = N[A.j]
+        if iscustomer(n) && isclose(n) 
+            t = N[n.t]
+            h = N[n.h]
+            v = V[n.v]
+            removenode!(n, t, h, v, s)
+        end
+        W[i] = 0
+    end
     return s
 end
 
@@ -68,7 +89,29 @@ function relatednode!(rng::AbstractRNG, k::Int, s::Solution)
 end
 
 function relatedarc!(rng::AbstractRNG, k::Int, s::Solution)
-    # TODO
+    A = s.G.A
+    isequal(N[A.i].v, N[A.j]) ? # we have to update A
+    V = s.G.V
+    W = zeros(Float64, length(A))
+    p = sample(rng, 1:length(A))
+    for i ∈ eachindex(A)
+        if isone(i) continue end
+        W[i] = relatedness(A[p], A[i])
+    end
+    for _ in 1:k
+        i = sample(rng, 1:length(A), Weights(W))
+        n = N[A.i]
+        t = N[n.t]
+        h = N[n.h]
+        v = V[n.v]
+        removenode!(n, t, h, v, s)
+        n = N[A.j]
+        t = N[n.t]
+        h = N[n.h]
+        v = V[n.v]
+        removenode!(n, t, h, v, s)
+        W[i] = 0.
+    end
     return s
 end
 
