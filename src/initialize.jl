@@ -24,9 +24,7 @@ function build(instance::String; dir=joinpath(dirname(@__DIR__), "instances"))
             xⱼ = N[j].x
             yⱼ = N[j].y 
             c = ((xⱼ-xᵢ)^2 + (yⱼ-yᵢ)^2)^0.5
-            x = (xᵢ + xⱼ) / 2
-            y = (yᵢ + yⱼ) / 2
-            A[i,j] = Arc(i, j, c, x, y)
+            A[i,j] = Arc(i, j, c)
         end
     end
     # vehicles
