@@ -140,8 +140,8 @@ function relatedarc!(rng::AbstractRNG, k::Int, s::Solution)
     # arc indices
     C = CartesianIndices(G.A)
     W = zeros(Float64, length(A))
-    # choose a pivot arc at random
-    p = A[rand(rng, C)]
+    # choose a pivot arc from solution at random
+    p = sample(rng, A, Weights([isequal(N[a.i].h, N[a.j]) ? 1 : 0 for a ∈ A]))
     pᵢ = N[p.i]
     pⱼ = N[p.j]
     # compute relatedness weights based on Manhattan distance to pivot arc
