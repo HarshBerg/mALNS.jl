@@ -17,16 +17,17 @@ function build(instance::String; dir=joinpath(dirname(@__DIR__), "instances"))
     end
     # arcs
     A = Matrix{Arc}(undef, n, n)
-    for i ∈ 1:n
-        xᵢ = N[i].x
-        yᵢ = N[i].y 
-        for j in 1:n
-            xⱼ = N[j].x
-            yⱼ = N[j].y 
-            c = ((xⱼ-xᵢ)^2 + (yⱼ-yᵢ)^2)^0.5
-            A[i,j] = Arc(i, j, c)
+    for t ∈ 1:n
+        xₜ = N[t].x
+        yₜ = N[t].y 
+        for h ∈ 1:n
+            xₕ = N[h].x
+            yₕ = N[h].y
+            c  = hypot(xₕ - xₜ, yₕ - yₜ)
+            a  = Arc(t, h, c)
+            A[t,h] = a
         end
-    end
+    end   
     # vehicles
     q = parse(Int, df[k₂,2])
     V = Vector{Vehicle}(undef, n-1)

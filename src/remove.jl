@@ -34,13 +34,13 @@ function randomarc!(rng::AbstractRNG, k::Int, s::Solution)
     # arc indices 
     C = CartesianIndices(G.A)
     # uniform weights for all arcs that connect customer nodes
-    W = [isequal(N[a.i].h, N[a.j]) ? 1 : 0 for a ∈ A]
+    W = [isequal(N[a.t].h, N[a.h]) ? 1 : 0 for a ∈ A]
     for _ in 1:k
         # sample an arc based on uniform weights
         i = sample(rng, 1:length(A), Weights(W))
         a = A[C[i]]
         # remove tail node 
-        n = N[a.i]
+        n = N[a.t]
         if iscustomer(n) && isclose(n) 
             t = N[n.t]
             h = N[n.h]
@@ -48,7 +48,7 @@ function randomarc!(rng::AbstractRNG, k::Int, s::Solution)
             removenode!(n, t, h, v, s)
         end
         # remove head node
-        n = N[A.j]
+        n = N[a.h]
         if iscustomer(n) && isclose(n) 
             t = N[n.t]
             h = N[n.h]
@@ -141,23 +141,23 @@ function relatedarc!(rng::AbstractRNG, k::Int, s::Solution)
     C = CartesianIndices(G.A)
     W = zeros(Float64, length(A))
     # choose a pivot arc from solution at random
-    p = sample(rng, A, Weights([isequal(N[a.i].h, N[a.j]) ? 1 : 0 for a ∈ A]))
-    pᵢ = N[p.i]
-    pⱼ = N[p.j]
+    p = sample(rng, A, Weights([isequal(N[a.t].h, N[a.h]) ? 1 : 0 for a ∈ A]))
+    pₜ = N[p.t]
+    pₕ = N[p.h]
     # compute relatedness weights based on Manhattan distance to pivot arc
     for i ∈ eachindex(A)
         a = A[C[i]]
-        aᵢ = N[a.i]
-        aⱼ = N[a.j]
-        d = abs((aᵢ.x + aⱼ.x) - (pᵢ.x + pⱼ.x)) + abs((aᵢ.y + aⱼ.y) - (pᵢ.y + pⱼ.y))
-        W[i] = isequal(aᵢ.h, aⱼ) ? (1 / (d + 1e-3)) : 0.
+        aₜ = N[a.t]
+        aₕ = N[a.h]
+        d = abs((aₜ.x + aₕ.x) - (pₜ.x + pₕ.x)) + abs((aₜ.y + aₕ.y) - (pₜ.y + pₕ.y))
+        W[i] = isequal(aₜ.h, aₕ) ? (1 / (d + 1e-3)) : 0.
     end
     for _ in 1:k
         # sample an arc based on relatedness weights
         i = sample(rng, 1:length(A), Weights(W))
         a = A[C[i]]
         # remove tail node
-        n = N[a.i]
+        n = N[a.t]
         if iscustomer(n) && isclose(n) 
             t = N[n.t]
             h = N[n.h]
@@ -165,7 +165,7 @@ function relatedarc!(rng::AbstractRNG, k::Int, s::Solution)
             removenode!(n, t, h, v, s)
         end
         # remove head node
-        n = N[A.j]
+        n = N[a.h]
         if iscustomer(n) && isclose(n) 
             t = N[n.t]
             h = N[n.h]
@@ -263,13 +263,13 @@ function worstarc!(rng::AbstractRNG, k::Int, s::Solution)
     # arc indices
     C = CartesianIndices(G.A)
     # cost contribution weights for each arc
-    W = [isequal(N[a.i].h, N[a.j]) ? a.c : 0. for a ∈ A]
+    W = [isequal(N[a.t].h, N[a.h]) ? a.c : 0. for a ∈ A]
     for _ in 1:k
         # sample an arc based on weights
         i = sample(rng, 1:length(A), Weights(W))
         a = A[C[i]]
         # remove tail node
-        n = N[a.i]
+        n = N[a.t]
         if iscustomer(n) && isclose(n) 
             t = N[n.t]
             h = N[n.h]
@@ -277,7 +277,7 @@ function worstarc!(rng::AbstractRNG, k::Int, s::Solution)
             removenode!(n, t, h, v, s)
         end
         # remove head node
-        n = N[A.j]
+        n = N[a.h]
         if iscustomer(n) && isclose(n) 
             t = N[n.t]
             h = N[n.h]

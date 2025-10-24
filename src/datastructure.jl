@@ -16,12 +16,12 @@ mutable struct Node
 end
 
 """
-    Arc(i::Int, j::Int, c::Float64)
-    An 'Arc' is a directed edge from node `i` (tail) to node `j` (head) with cost `c`.
+    Arc(t::Int, h::Int, c::Float64)
+    An 'Arc' is a directed edge from node `t` (tail) to node `h` (head) with cost `c`.
 """
 struct Arc
-    i::Int                    # Index of the tail node
-    j::Int                    # Index of the head node
+    t::Int                    # Index of the tail node
+    h::Int                    # Index of the head node
     c::Float64                # Cost of the arc    
 end
 
