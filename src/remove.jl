@@ -110,7 +110,7 @@ function relatednode!(rng::AbstractRNG, k::Int, s::Solution)
     p = N[rand(rng, eachindex(N))]
     # compute relatedness weights based on Manhattan distance to pivot node
     for i ∈ eachindex(N)
-        n = G.N[i]
+        n = N[i]
         if isdepot(n) continue end
         d = abs(n.x - p.x) + abs(n.y - p.y)
         W[i] = 1 / (d + 1e-3)
