@@ -1,7 +1,7 @@
 """
    randomnode!(rng::AbstractRNG, k::Int, s::Solution)
 
-   returns solution 's' after removing k random nodes from solution s.
+   returns solution 's' after removing exactly k random nodes from solution s.
 """
 function randomnode!(rng::AbstractRNG, k::Int, s::Solution)
     N = s.G.N
@@ -25,7 +25,7 @@ end
 """
     randomarc!(rng::AbstractRNG, k::Int, s::Solution)
 
-    returns solution 's' after removing k random arcs from solution s.
+    returns solution 's' after removing exactly k random arcs from solution s.
 """
 function randomarc!(rng::AbstractRNG, k::Int, s::Solution)
     N = s.G.N
@@ -100,7 +100,7 @@ end
 """
     relatednode!(rng::AbstractRNG, k::Int, s::Solution)
     
-    returns solution 's' after removing k nodes based on relatednessto a pivot node.
+    returns solution 's' after removing exactly k nodes based on relatednessto a pivot node.
 """
 function relatednode!(rng::AbstractRNG, k::Int, s::Solution)
     N = s.G.N
@@ -131,7 +131,7 @@ end
 """
     relatedarc!(rng::AbstractRNG, k::Int, s::Solution)
 
-    returns solution 's' after removing k arcs based on relatedness to a pivot arc.
+    returns solution 's' after removing exactly k arcs based on relatedness to a pivot arc.
 """
 function relatedarc!(rng::AbstractRNG, k::Int, s::Solution)
     N = s.G.N
@@ -222,7 +222,7 @@ end
 """
     worstnode!(rng::AbstractRNG, k::Int, s::Solution)
 
-    returns solution 's' after removing k nodes that contribute the most to the cost.
+    returns solution 's' after removing exactly k nodes that contribute the most to the cost.
 """
 function worstnode!(rng::AbstractRNG, k::Int, s::Solution)
     N = s.G.N
@@ -254,7 +254,7 @@ end
 """
     worstarc!(rng::AbstractRNG, k::Int, s::Solution)
 
-    returns solution 's' after removing k arcs that contribute the most to the cost.
+    returns solution 's' after removing exactly k arcs that contribute the most to the cost.
 """
 function worstarc!(rng::AbstractRNG, k::Int, s::Solution)
     N = s.G.N
