@@ -28,6 +28,7 @@ end
     returns solution 's' after removing exactly k random arcs from solution s.
 """
 function randomarc!(rng::AbstractRNG, k::Int, s::Solution)
+    G = s.G
     N = s.G.N
     A = s.G.A
     V = s.G.V
@@ -137,6 +138,7 @@ function relatedarc!(rng::AbstractRNG, k::Int, s::Solution)
     N = s.G.N
     A = s.G.A
     V = s.G.V
+    G = s.G
     # arc indices
     C = CartesianIndices(G.A)
     W = zeros(Float64, length(A))
@@ -191,10 +193,11 @@ end
 function relatedvehicle!(rng::AbstractRNG, k::Int, s::Solution)
     N = s.G.N
     V = s.G.V
+    G = s.G
     # choose a pivot vehicle at random
     p = V[rand(rng, eachindex(V))]
     # compute relatedness weights based on Manhattan distance to pivot vehicle
-    W = zeros(Float64, I)
+    W = zeros(Float64, length(V))
     for i ∈ eachindex(V)
         v = G.V[i]
         d = abs(v.x - p.x) + abs(v.y - p.y)
