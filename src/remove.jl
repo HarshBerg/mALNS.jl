@@ -165,7 +165,7 @@ function relatedarc!(rng::AbstractRNG, k::Int, s::Solution)
         W[i] = isequal(aₜ.h, aₕ.i) ? (1 / (d + 1e-3)) : 0.
     end
     c = 0
-    while c ≤ k
+    while c < k
         # sample an arc based on relatedness weights
         i = sample(rng, 1:length(A), Weights(W))
         a = A[i]
@@ -281,7 +281,7 @@ function worstarc!(rng::AbstractRNG, k::Int, s::Solution)
     # cost contribution weights for each arc
     W = [isequal(N[A[i].t].h, N[A[i].h].i) ? A[i].c : 0. for i ∈ I]
     c = 0
-    while c ≤ k
+    while c < k
         # sample an arc based on weights
         i = sample(rng, I, Weights(W))
         a = A[i]
