@@ -44,7 +44,7 @@ function randomarc!(rng::AbstractRNG, k::Int, s::Solution)
     end
     # loop: remove at least k nodes
     c = 0
-    while c ≤ k
+    while c < k
         # sample an arc based on uniform weights
         i = sample(rng, I, Weights(W))
         a = A[i]
