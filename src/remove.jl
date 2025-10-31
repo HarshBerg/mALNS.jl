@@ -33,13 +33,21 @@ function randomarc!(rng::AbstractRNG, k::Int, s::Solution)
     A = s.G.A
     V = s.G.V
     # arc indices 
-    C = CartesianIndices(G.A)
+    I = eachindex(A)
+    W = zeros(Int, I)
     # uniform weights for all arcs that connect customer nodes
-    W = [isequal(N[a.t].h, N[a.h]) ? 1 : 0 for a ∈ A]
-    for _ in 1:k
+    for i ∈ I
+        a = A[i]
+        t = N[a.t]
+        h = N[a.h]
+        W[i] = isequal(t.h, h.i) ? 1 : 0
+    end
+    # loop: remove at least k nodes
+    c = 0
+    while c ≤ k
         # sample an arc based on uniform weights
-        i = sample(rng, 1:length(A), Weights(W))
-        a = A[C[i]]
+        i = sample(rng, I, Weights(W))
+        a = A[i]
         # remove tail node 
         n = N[a.t]
         if iscustomer(n) && isclose(n) 
@@ -47,6 +55,7 @@ function randomarc!(rng::AbstractRNG, k::Int, s::Solution)
             h = N[n.h]
             v = V[n.v]
             removenode!(n, t, h, v, s)
+            c += 1
         end
         # remove head node
         n = N[a.h]
@@ -55,6 +64,7 @@ function randomarc!(rng::AbstractRNG, k::Int, s::Solution)
             h = N[n.h]
             v = V[n.v]
             removenode!(n, t, h, v, s)
+            c += 1
         end
         # update arc weight to 0 to avoid reselection
         W[i] = 0
@@ -140,24 +150,25 @@ function relatedarc!(rng::AbstractRNG, k::Int, s::Solution)
     V = s.G.V
     G = s.G
     # arc indices
-    C = CartesianIndices(G.A)
-    W = zeros(Float64, length(A))
+    I = eachindex(A)
     # choose a pivot arc from solution at random
-    p = sample(rng, A, Weights([isequal(N[a.t].h, N[a.h]) ? 1 : 0 for a ∈ A]))
+    p = A[sample(rng, I, Weights([isequal(N[A[i].t].h, N[A[i].h].i) ? 1 : 0 for i ∈ I]))]
     pₜ = N[p.t]
     pₕ = N[p.h]
     # compute relatedness weights based on Manhattan distance to pivot arc
-    for i ∈ eachindex(A)
-        a = A[C[i]]
+    W = zeros(Float64, I) 
+    for i ∈ I
+        a = A[i]
         aₜ = N[a.t]
         aₕ = N[a.h]
         d = abs((aₜ.x + aₕ.x) - (pₜ.x + pₕ.x)) + abs((aₜ.y + aₕ.y) - (pₜ.y + pₕ.y))
-        W[i] = isequal(aₜ.h, aₕ) ? (1 / (d + 1e-3)) : 0.
+        W[i] = isequal(aₜ.h, aₕ.i) ? (1 / (d + 1e-3)) : 0.
     end
-    for _ in 1:k
+    c = 0
+    while c ≤ k
         # sample an arc based on relatedness weights
         i = sample(rng, 1:length(A), Weights(W))
-        a = A[C[i]]
+        a = A[i]
         # remove tail node
         n = N[a.t]
         if iscustomer(n) && isclose(n) 
@@ -165,6 +176,7 @@ function relatedarc!(rng::AbstractRNG, k::Int, s::Solution)
             h = N[n.h]
             v = V[n.v]
             removenode!(n, t, h, v, s)
+            c += 1
         end
         # remove head node
         n = N[a.h]
@@ -173,6 +185,7 @@ function relatedarc!(rng::AbstractRNG, k::Int, s::Solution)
             h = N[n.h]
             v = V[n.v]
             removenode!(n, t, h, v, s)
+            c += 1
         end
         # update arc weight to 0 to avoid reselection
         W[i] = 0.
@@ -264,13 +277,14 @@ function worstarc!(rng::AbstractRNG, k::Int, s::Solution)
     A = s.G.A
     V = s.G.V
     # arc indices
-    C = CartesianIndices(G.A)
+    I = eachindex(A)
     # cost contribution weights for each arc
-    W = [isequal(N[a.t].h, N[a.h]) ? a.c : 0. for a ∈ A]
-    for _ in 1:k
+    W = [isequal(N[A[i].t].h, N[A[i].h].i) ? A[i].c : 0. for i ∈ I]
+    c = 0
+    while c ≤ k
         # sample an arc based on weights
-        i = sample(rng, 1:length(A), Weights(W))
-        a = A[C[i]]
+        i = sample(rng, I, Weights(W))
+        a = A[i]
         # remove tail node
         n = N[a.t]
         if iscustomer(n) && isclose(n) 
@@ -278,6 +292,7 @@ function worstarc!(rng::AbstractRNG, k::Int, s::Solution)
             h = N[n.h]
             v = V[n.v]
             removenode!(n, t, h, v, s)
+            c += 1
         end
         # remove head node
         n = N[a.h]
@@ -286,6 +301,7 @@ function worstarc!(rng::AbstractRNG, k::Int, s::Solution)
             h = N[n.h]
             v = V[n.v]
             removenode!(n, t, h, v, s)
+            c += 1
         end
         # update arc weight to 0 to avoid reselection
         W[i] = 0
