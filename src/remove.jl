@@ -74,9 +74,7 @@ function randomarc!(rng::AbstractRNG, k::Int, s::Solution)
 end
 
 function randomsegment!(rng::AbstractRNG, k::Int, s::Solution)
-    G = s.G
     N = s.G.N
-    A = s.G.A
     V = s.G.V
     W = ones(Int, length(V))
     c = 0 
@@ -89,14 +87,15 @@ function randomsegment!(rng::AbstractRNG, k::Int, s::Solution)
             W[i] = 0
             continue
         end
-        x = v.n ÷ (rand(rng) * 1.2 + 1.3)   # number of nodes to remove in that vehicle 
+        x = v.n ÷ (rand(rng) * 1.2 + 1.3)
+        x = max(1, x)   # number of nodes to remove in that vehicle 
         println(x)
         y = v.n - x # possible ways to choose the segment of x nodes
         println(y)
         c2 = 0
         n = N[v.s]
         println(n)
-        z = rand(1:y)
+        z = rand(rng, 1:y)
         println(z)
         while c2 < x
             c3 = 0
