@@ -74,7 +74,46 @@ function randomarc!(rng::AbstractRNG, k::Int, s::Solution)
 end
 
 function randomsegment!(rng::AbstractRNG, k::Int, s::Solution)
-    # TODO
+    G = s.G
+    N = s.G.N
+    A = s.G.A
+    V = s.G.V
+    W = ones(Int, length(V))
+    c = 0 
+    while c < k
+        # sample a vehicle based on uniform weights
+        i = sample(rng, 1:length(V), Weights(W))
+        v = V[i] 
+        println(v)
+        if v.n < 2
+            W[i] = 0
+            continue
+        end
+        x = v.n ÷ (rand(rng) * 1.2 + 1.3)   # number of nodes to remove in that vehicle 
+        println(x)
+        y = v.n - x # possible ways to choose the segment of x nodes
+        println(y)
+        c2 = 0
+        n = N[v.s]
+        println(n)
+        z = rand(1:y)
+        println(z)
+        while c2 < x
+            c3 = 0
+            if c3 < z
+                n = N[n.h]
+                c3 += 1
+            else
+                t = N[n.t]
+                h = N[n.h]
+                removenode!(n, t, h, v, s)
+                c3 += 1
+            end
+            c2 += 1
+        end
+        W[i] = 0
+        c += 1
+    end
     return s
 end
 """
@@ -195,7 +234,10 @@ function relatedarc!(rng::AbstractRNG, k::Int, s::Solution)
 end
 
 function relatedsegment!(rng::AbstractRNG, k::Int, s::Solution)
-    # TODO
+    N = s.G.N
+    V = s.G.V
+    A = s.G.A
+    G = s.G
     return s
 end
 """
