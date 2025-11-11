@@ -101,5 +101,19 @@ function initialize(instance::String; dir=joinpath(dirname(@__DIR__), "instances
             else insertnode!(nᵢ, tⱼ, nⱼ, vⱼ, s) end
         end
     end
+    # remove non-operational vehicles
+    filter!(isopt, V)
+    # reset indices
+    K = eachindex(V)
+    for k ∈ K
+        v = V[k]
+        v.i = k
+        n = N[v.s]
+        for _ ∈ 1:v.n
+            n.v = k
+            n = N[n.h]
+        end
+    end
+    # return solution
     return s
 end
