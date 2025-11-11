@@ -83,24 +83,23 @@ function randomsegment!(rng::AbstractRNG, k::Int, s::Solution)
     W = [v.n ≤ 3 ? 0 : 1 for v ∈ V]
     c = 0 
     while c < k
-        # sample a vehicle based on uniform weights
         i = sample(rng, 1:length(V), Weights(W))
-        v = V[i] 
+        v = V[i]
         x = sample(rng, 3:Int(floor(v.n * 0.75)))
-        y = rand(rng, 1:(v.n - x))
+        p = rand(rng, 1:(v.n - x))
         j = 0
         n = N[v.s]
-        while j < x 
-            if j ≥ y 
-                t = N[n.t]
-                h = N[n.h]
+        for _ ∈ 1:v.n
+            t = N[n.t]
+            h = N[n.h]
+            if j ≥ p 
                 removenode!(n, t, h, v, s)
                 c += 1
             end
             n = h
             j += 1
         end
-        W[i] = 0
+        W[i] = v.n ≤ 3 ? 0 : 1
         c += 1
     end
     return s
@@ -221,6 +220,7 @@ function relatedarc!(rng::AbstractRNG, k::Int, s::Solution)
     # return solution
     return s
 end
+#=
 """
     relatedsegment!(rng::AbstractRNG, k::Int, s::Solution)
 
@@ -276,8 +276,10 @@ function relatedsegment!(rng::AbstractRNG, k::Int, s::Solution)
         for j ∈ 1:y
             n = N[v.s]
             c3 = 0
-                    
+        end
+    end             
 end
+=#
 """
     relatedvehicle!(rng::AbstractRNG, k::Int, s::Solution)
 
@@ -389,9 +391,36 @@ function worstarc!(rng::AbstractRNG, k::Int, s::Solution)
     # return solution
     return s
 end
+"""
+    worstsegment!(rng::AbstractRNG, k::Int, s::Solution)
 
+    returns solution 's' after removing atleast 'k' nodes from worst segments.
+"""
 function worstsegment!(rng::AbstractRNG, k::Int, s::Solution)
-    # TODO
+    N = s.G.N
+    V = s.G.V
+    W = [v.n ≤ 3 ? 0 : v.n for v ∈ V]
+    c = 0 
+    while c < k
+        i = sample(rng, 1:length(V), Weights(W))
+        v = V[i]
+        x = sample(rng, 3:Int(floor(v.n * 0.75)))
+        p = rand(rng, 1:(v.n - x))
+        j = 0
+        n = N[v.s]
+        for _ ∈ 1:v.n
+            t = N[n.t]
+            h = N[n.h]
+            if j ≥ p 
+                removenode!(n, t, h, v, s)
+                c += 1
+            end
+            n = h
+            j += 1
+        end
+        W[i] = v.n ≤ 3 ? 0 : 1
+        c += 1
+    end
     return s
 end
 """
