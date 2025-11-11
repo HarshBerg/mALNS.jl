@@ -72,7 +72,11 @@ function randomarc!(rng::AbstractRNG, k::Int, s::Solution)
     # return solution
     return s
 end
+"""
+    randomsegment!(rng::AbstractRNG, k::Int, s::Solution)
 
+    returns solution 's' after removing atleast 'k' nodes from random segments.
+"""
 function randomsegment!(rng::AbstractRNG, k::Int, s::Solution)
     N = s.G.N
     V = s.G.V
@@ -231,13 +235,62 @@ function relatedarc!(rng::AbstractRNG, k::Int, s::Solution)
     # return solution
     return s
 end
+"""
+    relatedsegment!(rng::AbstractRNG, k::Int, s::Solution)
 
+    returns solution 's' after removing atleast 'k' nodes from segments related to a pivot segment.
+"""
 function relatedsegment!(rng::AbstractRNG, k::Int, s::Solution)
+    G = s.G
     N = s.G.N
     V = s.G.V
     A = s.G.A
-    G = s.G
-    return s
+    i = sample(rng, 1:length(V), Weights(W))
+    v = V[i]
+    x = v.n ÷ (rand(rng) * 1.2 + 1.3) # number of nodes to remove in that vehicle
+    x = max(1, x)
+    if iseven(x) == true
+        c = 0
+        n = N[v.s]
+        while c < x ÷ 2
+            t = n 
+            n = N[n.h]
+            c += 1
+        end
+        pₜ = n
+        pₕ = N[n.h]
+        pₐ = abs((pₕ.x + pₜ.x)/2)
+        pₒ = abs((pₕ.y + pₜ.y)/2)
+    else
+        c = 0
+        n = N[v.s]
+        while c ≤ x ÷ 2
+            t = n 
+            n = N[n.h]
+            c += 1
+        end
+        p = N[n.h]
+        pₐ = p.x
+        pₒ = p.y
+    end
+    W = zeros(Float64, length(V))
+    for i ∈ eachindex(V)
+        v = G.V[i]
+        d = abs(v.x - pₐ) + abs(v.y - pₒ)
+        W[i] = 1 / (d + 1e-3)
+    end
+    c2 = 0
+    while c2 < k
+        i = sample(rng, 1:length(V), Weights(W))
+        v = V[i]
+        x = v.n ÷ (rand(rng) * 1.2 + 1.3)
+        x = max(1, x)   # number of nodes to remove in that vehicle
+        y = v.n - x # possible ways to choose the segment of x nodes
+        W = zeros(Float64, y)
+        for j ∈ 1:y
+            n = N[v.s]
+            c3 = 0
+                    
 end
 """
     relatedvehicle!(rng::AbstractRNG, k::Int, s::Solution)
