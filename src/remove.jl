@@ -80,39 +80,25 @@ end
 function randomsegment!(rng::AbstractRNG, k::Int, s::Solution)
     N = s.G.N
     V = s.G.V
-    W = ones(Int, length(V))
+    W = [v.n ≤ 3 ? 0 : 1 for v ∈ V]
     c = 0 
     while c < k
         # sample a vehicle based on uniform weights
         i = sample(rng, 1:length(V), Weights(W))
         v = V[i] 
-        println(v)
-        if v.n < 2
-            W[i] = 0
-            continue
-        end
-        x = v.n ÷ (rand(rng) * 1.2 + 1.3)
-        x = max(1, x)   # number of nodes to remove in that vehicle 
-        println(x)
-        y = v.n - x # possible ways to choose the segment of x nodes
-        println(y)
-        c2 = 0
+        x = sample(rng, 3:Int(floor(v.n * 0.75)))
+        y = rand(rng, 1:(v.n - x))
+        j = 0
         n = N[v.s]
-        println(n)
-        z = rand(rng, 1:y)
-        println(z)
-        while c2 < x
-            c3 = 0
-            if c3 < z
-                n = N[n.h]
-                c3 += 1
-            else
+        while j < x 
+            if j ≥ y 
                 t = N[n.t]
                 h = N[n.h]
                 removenode!(n, t, h, v, s)
-                c3 += 1
+                c += 1
             end
-            c2 += 1
+            n = h
+            j += 1
         end
         W[i] = 0
         c += 1
