@@ -89,6 +89,8 @@ function randomsegment!(rng::AbstractRNG, k::Int, s::Solution)
         p = rand(rng, 1:(v.n - x))
         j = 0
         n = N[v.s]
+        # there is no condition saying to stop at x nodes, so we loop through all nodes, so it is always removing nodes from p to end of vehicle.
+        # we need a condition < x to stop after removing x nodes.
         for _ ∈ 1:v.n
             t = N[n.t]
             h = N[n.h]
@@ -230,55 +232,58 @@ function relatedsegment!(rng::AbstractRNG, k::Int, s::Solution)
     G = s.G
     N = s.G.N
     V = s.G.V
-    A = s.G.A
+    W = [v.n ≤ 3 ? 0 : 1 for v ∈ V]
     i = sample(rng, 1:length(V), Weights(W))
     v = V[i]
-    x = v.n ÷ (rand(rng) * 1.2 + 1.3) # number of nodes to remove in that vehicle
-    x = max(1, x)
-    if iseven(x) == true
+    x = sample(rng, 3:Int(floor(v.n * 0.75)))
+    p = rand(rng, 1:(v.n - x))
+    j = 0
+    n = N[v.s]
+    if isodd(x) == true
         c = 0
-        n = N[v.s]
-        while c < x ÷ 2
-            t = n 
-            n = N[n.h]
+        for _ ∈ 1:v.n
+            t = N[n.t]
+            h = N[n.h]
+            n = h
+            if c ≥ p + x ÷ 2
+                break
+                Pₐ = n.x
+                Pₒ = n.y
+            end
             c += 1
         end
-        pₜ = n
-        pₕ = N[n.h]
-        pₐ = abs((pₕ.x + pₜ.x)/2)
-        pₒ = abs((pₕ.y + pₜ.y)/2)
-    else
-        c = 0
-        n = N[v.s]
-        while c ≤ x ÷ 2
-            t = n 
-            n = N[n.h]
-            c += 1
-        end
-        p = N[n.h]
-        pₐ = p.x
-        pₒ = p.y
     end
-    W = zeros(Float64, length(V))
+    if iseven(x) == true
+        c = 0 
+        for _ ∈ 1:v.n
+            t = N[n.t]
+            h = N[n.h]
+            n = h
+            if c > p + x ÷ 2
+                break
+                pₜ = n
+                pₕ = N[n.h]
+                pₐ = (pₕ.x + pₜ.x)/2 
+                pₒ = (pₕ.y + pₜ.y)/2
+            end
+            c += 1
+        end
+    end
+    W = [v.n ≤ 3 ? 0 : 1 for v ∈ V]
+    # compute relatedness weights based on Manhattan distance to pivot segment
     for i ∈ eachindex(V)
         v = G.V[i]
         d = abs(v.x - pₐ) + abs(v.y - pₒ)
         W[i] = 1 / (d + 1e-3)
     end
-    c2 = 0
-    while c2 < k
+    # again putting weights to zero for vehicles with less than 4 nodes
+    W = [v.n ≤ 3 ? 0 : for v ∈ V]
+    c = 0
+    while c < k
         i = sample(rng, 1:length(V), Weights(W))
         v = V[i]
-        x = v.n ÷ (rand(rng) * 1.2 + 1.3)
-        x = max(1, x)   # number of nodes to remove in that vehicle
-        y = v.n - x # possible ways to choose the segment of x nodes
-        W = zeros(Float64, y)
-        for j ∈ 1:y
-            n = N[v.s]
-            c3 = 0
-        end
-    end             
-end
+        x = x
+        ###########
 =#
 """
     relatedvehicle!(rng::AbstractRNG, k::Int, s::Solution)
@@ -399,6 +404,8 @@ end
 function worstsegment!(rng::AbstractRNG, k::Int, s::Solution)
     N = s.G.N
     V = s.G.V
+    # we can not add weights as v.n as the number of nodes served by a vehicle will be depended on capacity constraint and demand of customers.
+    # and I think these two will take care of that by itself.
     W = [v.n ≤ 3 ? 0 : v.n for v ∈ V]
     c = 0 
     while c < k
