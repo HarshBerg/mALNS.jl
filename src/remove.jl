@@ -89,12 +89,10 @@ function randomsegment!(rng::AbstractRNG, k::Int, s::Solution)
         p = rand(rng, 1:(v.n - x))
         j = 0
         n = N[v.s]
-        # there is no condition saying to stop at x nodes, so we loop through all nodes, so it is always removing nodes from p to end of vehicle.
-        # we need a condition < x to stop after removing x nodes.
         for _ ∈ 1:v.n
             t = N[n.t]
             h = N[n.h]
-            if j ≥ p 
+            if j ≥ p # TODO: Update this condition: should be p ≤ j ≤ p + x - 1
                 removenode!(n, t, h, v, s)
                 c += 1
             end
@@ -404,9 +402,16 @@ end
 function worstsegment!(rng::AbstractRNG, k::Int, s::Solution)
     N = s.G.N
     V = s.G.V
+    
     # we can not add weights as v.n as the number of nodes served by a vehicle will be depended on capacity constraint and demand of customers.
     # and I think these two will take care of that by itself.
-    W = [v.n ≤ 3 ? 0 : v.n for v ∈ V]
+    
+    # RESPONSE: Ideally, we want to use vehicle tour length of as weights. The idea is that we want to remove nodes from long routes (segments).
+    # However, we do not have route length information stored in Vehicle struct. So, as a proxy, we can use number of nodes served by a vehicle as weights (v.n).
+    # Note: we dont want to use vehicle load (v.l), because route length is more strongly correlated to number of nodes served rather than load carried. 
+    
+    # utilization based weights for each vehicle
+    W = [v.n ≤ 3 ? 0 : v.n / v.q for v ∈ V]
     c = 0 
     while c < k
         i = sample(rng, 1:length(V), Weights(W))
@@ -418,7 +423,7 @@ function worstsegment!(rng::AbstractRNG, k::Int, s::Solution)
         for _ ∈ 1:v.n
             t = N[n.t]
             h = N[n.h]
-            if j ≥ p 
+            if j ≥ p # TODO: Update this condition: should be p ≤ j ≤ p + x - 1
                 removenode!(n, t, h, v, s)
                 c += 1
             end
