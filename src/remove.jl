@@ -70,14 +70,13 @@ function randomarc!(rng::AbstractRNG, k::Int, s::Solution)
         W[i] = 0
     end
     # return solution
-    return s
-end
+    return s    
 """
     randomsegment!(rng::AbstractRNG, k::Int, s::Solution)
 
     returns solution 's' after removing atleast 'k' nodes from random segments.
 """
-function randomsegment!(rng::AbstractRNG, k::Int, s::Solution)
+#function randomsegment!(rng::AbstractRNG, k::Int, s::Solution)
     N = s.G.N
     V = s.G.V
     W = [v.n ≤ 3 ? 0 : 1 for v ∈ V]
@@ -86,13 +85,13 @@ function randomsegment!(rng::AbstractRNG, k::Int, s::Solution)
         i = sample(rng, 1:length(V), Weights(W))
         v = V[i]
         x = sample(rng, 3:Int(floor(v.n * 0.75)))
-        p = rand(rng, 1:(v.n - x))
+        p = rand(rng, 1:(v.n - x))   
         j = 0
         n = N[v.s]
         for _ ∈ 1:v.n
             t = N[n.t]
             h = N[n.h]
-            if j ≥ p # TODO: Update this condition: should be p ≤ j ≤ p + x - 1
+            if j ≥ p && j ≤ p + x - 1
                 removenode!(n, t, h, v, s)
                 c += 1
             end
@@ -104,6 +103,42 @@ function randomsegment!(rng::AbstractRNG, k::Int, s::Solution)
     end
     return s
 end
+function randomsegment!(rng::AbstractRNG, k::Int, s::Solution)
+    N = s.G.N
+    V = s.G.V
+    W = [isdepot(n) ? 0 : 1 for n ∈ N]
+    c = 0 
+    while c < k
+        i = sample(rng, 1:length(N), Weights(W))
+        n = N[i]
+        x = sample(rng, 3:Int(floor(v.n * 0.75)))
+        c = 0
+        if x ÷ 2 ≥ c
+            t = N[n.t]
+            h = N[n.h]
+            removenode!(n, t, h, v, s)
+            n = h
+            c += 1
+        end
+        j = 0
+        if x ÷ 2 ≥ j 
+            if n ≠ v.s
+                t = N[n.t]
+                h = N[n.h]
+                removenode!(n, t, h, v, s)
+                n = t
+                j += 1
+            else
+                t = v.e
+                h = N[n.h]
+                removenode!(n, t, h, v, s)
+                n = t
+                j += 1
+            end
+        end
+    end
+end
+
 """
     randomvehicle!(rng::AbstractRNG, k::Int, s::Solution)
 
@@ -245,8 +280,8 @@ function relatedsegment!(rng::AbstractRNG, k::Int, s::Solution)
             n = h
             if c ≥ p + x ÷ 2
                 break
-                Pₐ = n.x
-                Pₒ = n.y
+                pₐ = n.x
+                pₒ = n.y
             end
             c += 1
         end
@@ -280,8 +315,8 @@ function relatedsegment!(rng::AbstractRNG, k::Int, s::Solution)
     while c < k
         i = sample(rng, 1:length(V), Weights(W))
         v = V[i]
-        x = x
-        ###########
+
+        W 
 =#
 """
     relatedvehicle!(rng::AbstractRNG, k::Int, s::Solution)
@@ -423,7 +458,7 @@ function worstsegment!(rng::AbstractRNG, k::Int, s::Solution)
         for _ ∈ 1:v.n
             t = N[n.t]
             h = N[n.h]
-            if j ≥ p # TODO: Update this condition: should be p ≤ j ≤ p + x - 1
+            if j ≥ p && j ≤ p + x - 1
                 removenode!(n, t, h, v, s)
                 c += 1
             end
