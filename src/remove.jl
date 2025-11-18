@@ -76,7 +76,7 @@ function randomarc!(rng::AbstractRNG, k::Int, s::Solution)
 
     returns solution 's' after removing atleast 'k' nodes from random segments.
 """
-#function randomsegment!(rng::AbstractRNG, k::Int, s::Solution)
+function randomsegment!(rng::AbstractRNG, k::Int, s::Solution)
     N = s.G.N
     V = s.G.V
     W = [v.n ≤ 3 ? 0 : 1 for v ∈ V]
@@ -103,6 +103,7 @@ function randomarc!(rng::AbstractRNG, k::Int, s::Solution)
     end
     return s
 end
+
 function randomsegment!(rng::AbstractRNG, k::Int, s::Solution)
     N = s.G.N
     V = s.G.V
@@ -111,32 +112,39 @@ function randomsegment!(rng::AbstractRNG, k::Int, s::Solution)
     while c < k
         i = sample(rng, 1:length(N), Weights(W))
         n = N[i]
+        v = V[n.v]
         x = sample(rng, 3:Int(floor(v.n * 0.75)))
-        c = 0
-        if x ÷ 2 ≥ c
-            t = N[n.t]
-            h = N[n.h]
-            removenode!(n, t, h, v, s)
+        xₕ = x ÷ 2
+        xₜ = x - xₕ - 1
+        # remove xₕ nodes after n
+        n = N[i]
+        h = N[n.h]
+        for _ in 1:xₕ
             n = h
+            t = isdepot(n) ? N[v.e] : N[n.t]
+            h = isdepot(n) ? N[v.s] : N[n.h]
+            if isdepot(n) continue end
+            removenode!(n, t, h, v, s)
             c += 1
         end
-        j = 0
-        if x ÷ 2 ≥ j 
-            if n ≠ v.s
-                t = N[n.t]
-                h = N[n.h]
-                removenode!(n, t, h, v, s)
-                n = t
-                j += 1
-            else
-                t = v.e
-                h = N[n.h]
-                removenode!(n, t, h, v, s)
-                n = t
-                j += 1
-            end
+        # remove xₜ nodes before n
+        n = N[i]
+        t = N[n.t]
+        for _ in 1:xₜ
+            n = t
+            t = isdepot(n) ? N[v.e] : N[n.t]
+            h = isdepot(n) ? N[v.s] : N[n.h]
+            if isdepot(n) continue end
+            removenode!(n, t, h, v, s)
+            c += 1
         end
+        # remove node n
+        n = N[i]
+        h = N[n.h]
+        t = N[n.t]
+        removenode!(n, t, h, v, s)
     end
+    return s
 end
 
 """
