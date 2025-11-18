@@ -70,7 +70,8 @@ function randomarc!(rng::AbstractRNG, k::Int, s::Solution)
         W[i] = 0
     end
     # return solution
-    return s    
+    return s   
+end 
 """
     randomsegment!(rng::AbstractRNG, k::Int, s::Solution)
 
@@ -263,7 +264,6 @@ function relatedarc!(rng::AbstractRNG, k::Int, s::Solution)
     # return solution
     return s
 end
-#=
 """
     relatedsegment!(rng::AbstractRNG, k::Int, s::Solution)
 
@@ -278,7 +278,6 @@ function relatedsegment!(rng::AbstractRNG, k::Int, s::Solution)
     v = V[i]
     x = sample(rng, 3:Int(floor(v.n * 0.75)))
     p = rand(rng, 1:(v.n - x))
-    j = 0
     n = N[v.s]
     if isodd(x) == true
         c = 0
@@ -310,22 +309,51 @@ function relatedsegment!(rng::AbstractRNG, k::Int, s::Solution)
             c += 1
         end
     end
-    W = [v.n ≤ 3 ? 0 : 1 for v ∈ V]
-    # compute relatedness weights based on Manhattan distance to pivot segment
-    for i ∈ eachindex(V)
-        v = G.V[i]
-        d = abs(v.x - pₐ) + abs(v.y - pₒ)
+    for i ∈ eachindex(N)
+        n = N[i]
+        if isdepot(n) continue end
+        d = abs(n.x - pₐ) + abs(n.y - pₒ)
         W[i] = 1 / (d + 1e-3)
     end
-    # again putting weights to zero for vehicles with less than 4 nodes
-    W = [v.n ≤ 3 ? 0 : for v ∈ V]
-    c = 0
+    c = 0 
     while c < k
-        i = sample(rng, 1:length(V), Weights(W))
-        v = V[i]
-
-        W 
-=#
+        i = sample(rng, 1:length(N), Weights(W))
+        n = N[i]
+        v = V[n.v]
+        x = sample(rng, 3:Int(floor(v.n * 0.75)))
+        xₕ = x ÷ 2
+        xₜ = x - xₕ - 1
+        # remove xₕ nodes after n
+        n = N[i]
+        h = N[n.h]
+        for _ in 1:xₕ
+            n = h
+            t = isdepot(n) ? N[v.e] : N[n.t]
+            h = isdepot(n) ? N[v.s] : N[n.h]
+            if isdepot(n) continue end
+            removenode!(n, t, h, v, s)
+            c += 1
+        end
+        # remove xₜ nodes before n
+        n = N[i]
+        t = N[n.t]
+        for _ in 1:xₜ
+            n = t
+            t = isdepot(n) ? N[v.e] : N[n.t]
+            h = isdepot(n) ? N[v.s] : N[n.h]
+            if isdepot(n) continue end
+            removenode!(n, t, h, v, s)
+            c += 1
+        end
+        # remove node n
+        n = N[i]
+        h = N[n.h]
+        t = N[n.t]
+        removenode!(n, t, h, v, s)
+        c += 1
+    end
+    return s
+end
 """
     relatedvehicle!(rng::AbstractRNG, k::Int, s::Solution)
 
@@ -446,13 +474,6 @@ function worstsegment!(rng::AbstractRNG, k::Int, s::Solution)
     N = s.G.N
     V = s.G.V
     
-    # we can not add weights as v.n as the number of nodes served by a vehicle will be depended on capacity constraint and demand of customers.
-    # and I think these two will take care of that by itself.
-    
-    # RESPONSE: Ideally, we want to use vehicle tour length of as weights. The idea is that we want to remove nodes from long routes (segments).
-    # However, we do not have route length information stored in Vehicle struct. So, as a proxy, we can use number of nodes served by a vehicle as weights (v.n).
-    # Note: we dont want to use vehicle load (v.l), because route length is more strongly correlated to number of nodes served rather than load carried. 
-    
     # utilization based weights for each vehicle
     W = [v.n ≤ 3 ? 0 : v.n / v.q for v ∈ V]
     c = 0 
@@ -478,6 +499,60 @@ function worstsegment!(rng::AbstractRNG, k::Int, s::Solution)
     end
     return s
 end
+
+function worstsegment!(rng::AbstractRNG, k::Int, s::Solution)
+    N = s.G.N
+    V = s.G.V
+    A = s.G.A
+    W = zeros(Float64, length(N))
+    # compute cost contribution weights for each node
+    for i ∈ eachindex(N)
+        if isone(i) continue end
+        n = N[i]
+        t = N[n.t]
+        h = N[n.h]
+        W[i] = (A[t.i, n.i].c + A[n.i, h.i].c) - A[t.i, h.i].c
+    end
+    c = 0 
+    while c < k
+        i = sample(rng, 1:length(N), Weights(W))
+        n = N[i]
+        v = V[n.v]
+        x = sample(rng, 3:Int(floor(v.n * 0.75)))
+        xₕ = x ÷ 2
+        xₜ = x - xₕ - 1
+        # remove xₕ nodes after n
+        n = N[i]
+        h = N[n.h]
+        for _ in 1:xₕ
+            n = h
+            t = isdepot(n) ? N[v.e] : N[n.t]
+            h = isdepot(n) ? N[v.s] : N[n.h]
+            if isdepot(n) continue end
+            removenode!(n, t, h, v, s)
+            c += 1
+        end
+        # remove xₜ nodes before n
+        n = N[i]
+        t = N[n.t]
+        for _ in 1:xₜ
+            n = t
+            t = isdepot(n) ? N[v.e] : N[n.t]
+            h = isdepot(n) ? N[v.s] : N[n.h]
+            if isdepot(n) continue end
+            removenode!(n, t, h, v, s)
+            c += 1
+        end
+        # remove node n
+        n = N[i]
+        h = N[n.h]
+        t = N[n.t]
+        removenode!(n, t, h, v, s)
+        c += 1
+    end
+    return s
+end
+
 """
     worstvehicle!(rng::AbstractRNG, k::Int, s::Solution)
 
