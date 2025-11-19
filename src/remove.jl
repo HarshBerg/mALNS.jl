@@ -273,42 +273,10 @@ function relatedsegment!(rng::AbstractRNG, k::Int, s::Solution)
     G = s.G
     N = s.G.N
     V = s.G.V
-    W = [v.n ≤ 3 ? 0 : 1 for v ∈ V]
-    i = sample(rng, 1:length(V), Weights(W))
-    v = V[i]
+    W = zeros(Float64, length(N))
+    # choose a pivot node at random
     x = sample(rng, 3:Int(floor(v.n * 0.75)))
-    p = rand(rng, 1:(v.n - x))
-    n = N[v.s]
-    if isodd(x) == true
-        c = 0
-        for _ ∈ 1:v.n
-            t = N[n.t]
-            h = N[n.h]
-            n = h
-            if c ≥ p + x ÷ 2
-                break
-                pₐ = n.x
-                pₒ = n.y
-            end
-            c += 1
-        end
-    end
-    if iseven(x) == true
-        c = 0 
-        for _ ∈ 1:v.n
-            t = N[n.t]
-            h = N[n.h]
-            n = h
-            if c > p + x ÷ 2
-                break
-                pₜ = n
-                pₕ = N[n.h]
-                pₐ = (pₕ.x + pₜ.x)/2 
-                pₒ = (pₕ.y + pₜ.y)/2
-            end
-            c += 1
-        end
-    end
+    p = N[rand(rng, eachindex(N))]
     for i ∈ eachindex(N)
         n = N[i]
         if isdepot(n) continue end
