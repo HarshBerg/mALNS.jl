@@ -22,6 +22,7 @@ function randomnode!(rng::AbstractRNG, k::Int, s::Solution)
     # return solution
     return s
 end
+
 """
     randomarc!(rng::AbstractRNG, k::Int, s::Solution)
 
@@ -72,39 +73,12 @@ function randomarc!(rng::AbstractRNG, k::Int, s::Solution)
     # return solution
     return s   
 end 
+
 """
     randomsegment!(rng::AbstractRNG, k::Int, s::Solution)
 
     returns solution 's' after removing atleast 'k' nodes from random segments.
 """
-function randomsegment!(rng::AbstractRNG, k::Int, s::Solution)
-    N = s.G.N
-    V = s.G.V
-    W = [v.n ≤ 3 ? 0 : 1 for v ∈ V]
-    c = 0 
-    while c < k
-        i = sample(rng, 1:length(V), Weights(W))
-        v = V[i]
-        x = sample(rng, 3:Int(floor(v.n * 0.75)))
-        p = rand(rng, 1:(v.n - x))   
-        j = 0
-        n = N[v.s]
-        for _ ∈ 1:v.n
-            t = N[n.t]
-            h = N[n.h]
-            if j ≥ p && j ≤ p + x - 1
-                removenode!(n, t, h, v, s)
-                c += 1
-            end
-            n = h
-            j += 1
-        end
-        W[i] = v.n ≤ 3 ? 0 : 1
-        c += 1
-    end
-    return s
-end
-
 function randomsegment!(rng::AbstractRNG, k::Int, s::Solution)
     N = s.G.N
     V = s.G.V
@@ -210,6 +184,7 @@ function relatednode!(rng::AbstractRNG, k::Int, s::Solution)
     # return solution
     return s
 end
+
 """
     relatedarc!(rng::AbstractRNG, k::Int, s::Solution)
 
@@ -264,6 +239,7 @@ function relatedarc!(rng::AbstractRNG, k::Int, s::Solution)
     # return solution
     return s
 end
+
 """
     relatedsegment!(rng::AbstractRNG, k::Int, s::Solution)
 
@@ -322,6 +298,7 @@ function relatedsegment!(rng::AbstractRNG, k::Int, s::Solution)
     end
     return s
 end
+
 """
     relatedvehicle!(rng::AbstractRNG, k::Int, s::Solution)
 
@@ -391,6 +368,7 @@ function worstnode!(rng::AbstractRNG, k::Int, s::Solution)
     # return solution
     return s
 end
+
 """
     worstarc!(rng::AbstractRNG, k::Int, s::Solution)
 
@@ -433,41 +411,12 @@ function worstarc!(rng::AbstractRNG, k::Int, s::Solution)
     # return solution
     return s
 end
+
 """
     worstsegment!(rng::AbstractRNG, k::Int, s::Solution)
 
     returns solution 's' after removing atleast 'k' nodes from worst segments.
 """
-function worstsegment!(rng::AbstractRNG, k::Int, s::Solution)
-    N = s.G.N
-    V = s.G.V
-    
-    # utilization based weights for each vehicle
-    W = [v.n ≤ 3 ? 0 : v.n / v.q for v ∈ V]
-    c = 0 
-    while c < k
-        i = sample(rng, 1:length(V), Weights(W))
-        v = V[i]
-        x = sample(rng, 3:Int(floor(v.n * 0.75)))
-        p = rand(rng, 1:(v.n - x))
-        j = 0
-        n = N[v.s]
-        for _ ∈ 1:v.n
-            t = N[n.t]
-            h = N[n.h]
-            if j ≥ p && j ≤ p + x - 1
-                removenode!(n, t, h, v, s)
-                c += 1
-            end
-            n = h
-            j += 1
-        end
-        W[i] = v.n ≤ 3 ? 0 : 1
-        c += 1
-    end
-    return s
-end
-
 function worstsegment!(rng::AbstractRNG, k::Int, s::Solution)
     N = s.G.N
     V = s.G.V
