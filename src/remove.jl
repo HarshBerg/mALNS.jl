@@ -100,6 +100,7 @@ function randomsegment!(rng::AbstractRNG, k::Int, s::Solution)
             h = isdepot(n) ? N[v.s] : N[n.h]
             if isdepot(n) continue end
             removenode!(n, t, h, v, s)
+            W[n.i] = 0
             c += 1
         end
         # remove xₜ nodes before n
@@ -111,6 +112,7 @@ function randomsegment!(rng::AbstractRNG, k::Int, s::Solution)
             h = isdepot(n) ? N[v.s] : N[n.h]
             if isdepot(n) continue end
             removenode!(n, t, h, v, s)
+            W[n.i] = 0
             c += 1
         end
         # remove node n
@@ -118,6 +120,8 @@ function randomsegment!(rng::AbstractRNG, k::Int, s::Solution)
         h = N[n.h]
         t = N[n.t]
         removenode!(n, t, h, v, s)
+        W[n.i] = 0
+        c += 1
     end
     return s
 end
@@ -276,6 +280,7 @@ function relatedsegment!(rng::AbstractRNG, k::Int, s::Solution)
             h = isdepot(n) ? N[v.s] : N[n.h]
             if isdepot(n) continue end
             removenode!(n, t, h, v, s)
+            W[n.i] = 0
             c += 1
         end
         # remove xₜ nodes before n
@@ -287,6 +292,7 @@ function relatedsegment!(rng::AbstractRNG, k::Int, s::Solution)
             h = isdepot(n) ? N[v.s] : N[n.h]
             if isdepot(n) continue end
             removenode!(n, t, h, v, s)
+            W[n.i] = 0
             c += 1
         end
         # remove node n
@@ -294,6 +300,7 @@ function relatedsegment!(rng::AbstractRNG, k::Int, s::Solution)
         h = N[n.h]
         t = N[n.t]
         removenode!(n, t, h, v, s)
+        W[n.i] = 0
         c += 1
     end
     return s
@@ -447,6 +454,7 @@ function worstsegment!(rng::AbstractRNG, k::Int, s::Solution)
             h = isdepot(n) ? N[v.s] : N[n.h]
             if isdepot(n) continue end
             removenode!(n, t, h, v, s)
+            W[n.i] = 0
             c += 1
         end
         # remove xₜ nodes before n
@@ -458,6 +466,7 @@ function worstsegment!(rng::AbstractRNG, k::Int, s::Solution)
             h = isdepot(n) ? N[v.s] : N[n.h]
             if isdepot(n) continue end
             removenode!(n, t, h, v, s)
+            W[n.i] = 0
             c += 1
         end
         # remove node n
@@ -465,6 +474,7 @@ function worstsegment!(rng::AbstractRNG, k::Int, s::Solution)
         h = N[n.h]
         t = N[n.t]
         removenode!(n, t, h, v, s)
+        W[n.i] = 0
         c += 1
     end
     return s
