@@ -255,12 +255,13 @@ function relatedsegment!(rng::AbstractRNG, k::Int, s::Solution)
     V = s.G.V
     W = zeros(Float64, length(N))
     # choose a pivot node at random
-    x = sample(rng, 3:Int(floor(v.n * 0.75)))
     p = N[rand(rng, eachindex(N))]
+    v = V[p.v]
+    x = sample(rng, 3:Int(floor(v.n * 0.75)))
     for i ∈ eachindex(N)
         n = N[i]
         if isdepot(n) continue end
-        d = abs(n.x - pₐ) + abs(n.y - pₒ)
+        d = abs(n.x - p.x) + abs(n.y - p.y)
         W[i] = 1 / (d + 1e-3)
     end
     c = 0 
