@@ -5,43 +5,72 @@ function best!(rng::AbstractRNG, s::Solution; mode::Symbol)
     V = G.V
     A = G.A
     # intialize
+    φ = isequal(mode, :perturb)
     L = [n for n ∈ N if iscustomer(n) && isopen(n)] # set of open nodes
     I = eachindex(L)
     J = eachindex(V)
+    W = ones(Int, I)
     C = fill(Inf, (I,J))                            # C[i,j]: best insertion cost of node L[i] in vehicle route V[j]
     P = fill((0,0), (I,J))                          # P[i,j]: best insertion position on node L[i] in vehicle route V[j]
     for _ ∈ I
-        i = rand(rng, I)
-        p = L[i]
+        z = f(s)
+        i = sample(rng, I, Weights(W))
+        n = L[i]
         for j ∈ J
             v = V[j]
-            n = v.s
-            h = n.h 
+            t = N[1]
+            h = N[v.s]
             for _ ∈ 0:v.n
-                n = h
-                t = isdepot(n) ? N[v.e] : N[n.t]
-                h = isdepot(n) ? N[v.s] : N[n.h]
-                insertnode!(p, t, h, v, s)
-                Δ = (A[t.i, p.i].c + A[p.i, h.i].c - A[t.i, h.i].c)
-                if Δ < C[i, j]
-                    C[i, j] = Δ
-                    P[i, j] = (t.i, h.i)
-                end
-                removenode!(p, t, h, v, s)
+                insertnode!(n, t, h, v, s)
+                z′ = f(s) * (1 + φ * rand(rng, Uniform(-0.2, 0.2)))
+                Δ  = z′ - z
+                if Δ < C[i,j] C[i,j], P[i,j] = Δ, (t.i, h.i) end
+                removenode!(n, t, h, v, s)
+                t = h
+                h = N[t.h]
             end
         end
-        j = argmin(C[i, :])
-        if isfinite(C[i, j])
-            p = L[i]
-            tᵢ, hᵢ = P[i, j]
-            t = N[tᵢ]
-            h = N[hᵢ]
-            v = V[j]
-            insertnode!(p, t, h, v, s)
+        j = argmin(C[i,:])
+        p = P[i,j]
+        t = N[p[1]]
+        h = N[p[2]]
+        v = V[j]
+        insertnode!(n, t, h, v, s)
+        W[i] = 0
+    end
+    return s
+end
+
+# TODO: Run any removal operator and then test best insertion.
+# TODO: @code_warntype best!(rng, s; mode=:default).
+
+function greedy!(rng::AbstractRNG, s::Solution; mode::Symbol)
+    # pre-initialize
+    G = s.G
+    N = G.N
+    V = G.V
+    A = G.A
+    # intialize
+    φ = isequal(mode, :perturb)
+    L = [n for n ∈ N if iscustomer(n) && isopen(n)] # set of open nodes
+    I = eachindex(L)
+    J = eachindex(V)
+    W = ones(Int, I)
+    C = fill(Inf, (I,J))                            # C[i,j]: best insertion cost of node L[i] in vehicle route V[j]
+    P = fill((0,0), (I,J))                          # P[i,j]: best insertion position on node L[i] in vehicle route V[j]
+    for _ ∈ I
+        for i ∈ I
+            for j ∈ J
+                for _ ∈ 0:v.n
+                end
+            end
         end
     end
     return s
 end
+
+# TODO: Complete the greedy insertion function.
+# NOTE: You don't want to compute Δ multiple times in greedy insertion for routes that have not chaged in the last insertion.
 
 #fprecise(rng::AbstractRNG, s::Solution) = f(rng, s; mode=:precise)
 #fpertrub(rng::AbstractRNG, s::Solution) = f(rng, s; mode=:perturb)  
