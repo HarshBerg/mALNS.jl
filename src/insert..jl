@@ -60,6 +60,7 @@ function greedy!(rng::AbstractRNG, s::Solution; mode::Symbol)
     W = ones(Int, I)
     C = fill(Inf, (I,J))                            # C[i,j]: best insertion cost of node L[i] in vehicle route V[j]
     P = fill((0,0), (I,J))                          # P[i,j]: best insertion position on node L[i] in vehicle route V[j]
+    R = ones(Int, J)                                #
     # loop until all nodes are inserted
     for _ ∈ I
         z = f(s)
@@ -67,6 +68,7 @@ function greedy!(rng::AbstractRNG, s::Solution; mode::Symbol)
             n = L[i]
             if isclosed(n) continue end
             for j ∈ J
+                if R[j] == 0 continue end
                 v = V[j]
                 t = N[1]
                 h = N[v.s]
@@ -81,33 +83,18 @@ function greedy!(rng::AbstractRNG, s::Solution; mode::Symbol)
                 end
             end
         end
-        i,j = argmin(C)
+        # insert the best node found
+        i, j = argmin(C)
         p = P[i,j]
         n = L[i]
         t = N[p[1]]
         h = N[p[2]]
         v = V[j]
         insertnode!(n, t, h, v, s)
-        for i ∈ I
-            pivot = L[i]
-            if isopen(n) continue end
-            t = N[p[1]]
-            h = n
-            insertnode!(pivot, t, h, v, s)
-            z′′ = f(s) 
-            Δ = z′′ - z′
-            if Δ < C[i,j] C[i,j], P[i,j] = Δ, (t.i, h.i) end
-            removenode!(pivot, t, h, v, s)
-            t = n
-            h = N[p[2]]
-            insertnode!(pivot, t, h, v, s)
-            z′′ = f(s)
-            Δ = z′′ - z′
-            if Δ < C[i,j] C[i,j], P[i,j] = Δ, (t.i, h.i) end
-            removenode!(pivot, t, h, v, s)
-        end
+        R .= 0
+        R[j] = 1
         C[i,:] .= Inf
-        P[i,:] .= ((0,0),)    
+        P[i,:] .= ((0,0),)
     end
     return s
 end
