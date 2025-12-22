@@ -12,7 +12,7 @@ mutable struct Node
     t::Int                   # Index of the tail node
     h::Int                   # Index of the head node
     v::Int                   # Vehicle index serving this node
-    Node(i, x, y, q) = new(i, x, y, q, 0, 0, 0)
+    Node(i, x, y, q) = new(i, x, y, q, i, i, 0)
 end
 
 """
