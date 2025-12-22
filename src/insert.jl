@@ -57,7 +57,7 @@ function greedy!(rng::AbstractRNG, s::Solution; mode::Symbol)
     W = ones(Int, I)
     C = fill(Inf, (I,J))                            # C[i,j]: best insertion cost of node L[i] in vehicle route V[j]
     P = fill((0,0), (I,J))                          # P[i,j]: best insertion position on node L[i] in vehicle route V[j]
-    R = ones(Int, J)                                #
+    ϕ = ones(Int, J)                                #
     # loop until all nodes are inserted
     for _ ∈ I
         z = f(s)
@@ -65,7 +65,7 @@ function greedy!(rng::AbstractRNG, s::Solution; mode::Symbol)
             n = L[i]
             if isclose(n) continue end
             for j ∈ J
-                if R[j] == 0 continue end
+                if iszero(ϕ[j]) continue end
                 v = V[j]
                 t = N[1]
                 h = N[v.s]
@@ -88,10 +88,12 @@ function greedy!(rng::AbstractRNG, s::Solution; mode::Symbol)
         h = N[p[2]]
         v = V[j]
         insertnode!(n, t, h, v, s)
-        R .= 0
-        R[j] = 1
+        ϕ .= 0
+        ϕ[j] = 1
         C[i,:] .= Inf
         P[i,:] .= ((0,0),)
+        C[:,j] .= Inf
+        P[:,j] .= ((0,0),)
     end
     return s
 end
@@ -107,13 +109,17 @@ function regretk!(rng::AbstractRNG, s::Solution; K::Int, mode::Symbol)
     I = eachindex(L)
     J = eachindex(V)
     W = ones(Int, I)
-    C = fill(Inf, (I,J))                            # C[i,j]: best insertion cost of node L[i] in vehicle route V[j]
-    P = fill((0,0), (I,J))                          # P[i,j]: best insertion position on node L[i] in vehicle route V[j]
+    C = fill(Inf, (I,J))                            # C[i,j]    : best insertion cost of node L[i] in vehicle route V[j]
+    P = fill((0,0), (I,J))                          # P[i,j]    : best insertion position on node L[i] in vehicle route V[j]
+    Cₖ= fill(Inf, (I,K))                            # Cₖ[i,k]   : k-th least insertion cost of node L[i]
+    R = zeros(I)                                    # R[i]      : regret cost of node L[i]
+    ϕ = ones(Int, J)                                #
     for _ ∈ I
         z = f(s)
         i = sample(rng, I, Weights(W))
         n = L[i]
         for j ∈ J
+            if iszero(ϕ[j]) continue end
             v = V[j]
             t = N[1]
             h = N[v.s]
@@ -122,40 +128,38 @@ function regretk!(rng::AbstractRNG, s::Solution; K::Int, mode::Symbol)
                 z′ = f(s) * (1 + φ * rand(rng, Uniform(-0.2, 0.2)))
                 Δ  = z′ - z
                 if Δ < C[i,j] C[i,j], P[i,j] = Δ, (t.i, h.i) end
+                # revise k least insertion cost
+                for (k,Δₖ) ∈ enumerate(Cₖ[i,:])
+                    if Δ < Δₖ
+                        # do this
+                    else
+                        # do this
+                    end
+                end
                 removenode!(n, t, h, v, s)
                 t = h
-                if t.h == 0 break end
                 h = N[t.h]
             end
+            # compute the regret cost
+            Δₒ = Cₖ[i,1]
+            for (k,Δₖ) ∈ enumerate(Cₖ[i,:]) R[i] += Δₖ - Δₒ end
         end
-        # compute regret values
-        R′ = -Inf                                  # best regret value
-        j′ = 0                                     # best vehicle index
-        i′ = 0                                     # best node index
-        for i ∈ I
-            c = sort(C[i,:])
-            c = filter(x -> isfinite(x), c)
-            if length(c) < 1 continue end
-            k = min(K, length(c))
-            R = sum(c[2:k] .- c[1])            # regret value
-            if R > R′
-                R′ = R
-                j′ = argmin(C[i,:])
-                i′ = i
-            end
-        end
-        # insert the node with best regret value
-        if i′ == 0 break end
-        p = P[i′,j′]
-        if p == (0,0) break end
-        n = L[i′]
+        # insert the best node found
+        i = argmax(R)
+        j = argmin(C[i,:])
+        p = P[i,j]
+        n = L[i]
         t = N[p[1]]
         h = N[p[2]]
-        v = V[j′]
+        v = V[j]
         insertnode!(n, t, h, v, s)
-        W[i′] = 0
-        C[i′,:] .= Inf
-        P[i′,:] .= ((0,0),)
+        ϕ .= 0
+        ϕ[j] = 1
+        C[i,:] .= Inf
+        P[i,:] .= ((0,0),)
+        C[:,j] .= Inf
+        P[:,j] .= ((0,0),)
+        R .= 0
     end
     return s
 end
