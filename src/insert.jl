@@ -1,4 +1,4 @@
-function best!(rng::AbstractRNG, s::Solution; mode::Symbol)
+ function best!(rng::AbstractRNG, s::Solution; mode::Symbol)
     # pre-initialize
     G = s.G
     N = G.N
@@ -108,37 +108,35 @@ function regretk!(rng::AbstractRNG, s::Solution; K::Int, mode::Symbol)
     L = [n for n ∈ N if iscustomer(n) && isopen(n)] # set of open nodes
     I = eachindex(L)
     J = eachindex(V)
-    W = ones(Int, I)
     C = fill(Inf, (I,J))                            # C[i,j]    : best insertion cost of node L[i] in vehicle route V[j]
     P = fill((0,0), (I,J))                          # P[i,j]    : best insertion position on node L[i] in vehicle route V[j]
-    Cₖ= fill(Inf, (I,K))                            # Cₖ[i,k]   : k-th least insertion cost of node L[i]
+    Cₖ= fill(Inf, (I,K))                            # Δₖ[i,k]   : k-th least insertion cost of node L[i]
     R = zeros(I)                                    # R[i]      : regret cost of node L[i]
-    ϕ = ones(Int, J)                                #
+    ϕ = ones(Int, J)                                
     for _ ∈ I
         z = f(s)
-        i = sample(rng, I, Weights(W))
-        n = L[i]
-        for j ∈ J
-            if iszero(ϕ[j]) continue end
-            v = V[j]
-            t = N[1]
-            h = N[v.s]
-            for _ ∈ 0:v.n
-                insertnode!(n, t, h, v, s)
-                z′ = f(s) * (1 + φ * rand(rng, Uniform(-0.2, 0.2)))
-                Δ  = z′ - z
-                if Δ < C[i,j] C[i,j], P[i,j] = Δ, (t.i, h.i) end
-                # revise k least insertion cost
-                for (k,Δₖ) ∈ enumerate(Cₖ[i,:])
-                    if Δ < Δₖ
-                        # do this
-                    else
-                        # do this
+        for (i,n) ∈ enumerate(L)
+            if isclose(n) continue end
+            for (j,v) ∈ enumerate(V)
+                if iszero(ϕ[j]) continue end
+                t = N[1]
+                h = N[v.s]
+                for _ ∈ 0:v.n
+                    insertnode!(n, t, h, v, s)
+                    z′ = f(s) * (1 + φ * rand(rng, Uniform(-0.2, 0.2)))
+                    Δ  = z′ - z
+                    if Δ < C[i,j] C[i,j], P[i,j] = Δ, (t.i, h.i) end
+                    # revise k least insertion cost
+                    for (k,Δₖ) ∈ enumerate(Cₖ[i,:])
+                        if Δ < Δₖ
+                            Cₖ[i,k] = Δ
+                            Δ = Δₖ
+                        end
                     end
+                    removenode!(n, t, h, v, s)
+                    t = h
+                    h = N[t.h]
                 end
-                removenode!(n, t, h, v, s)
-                t = h
-                h = N[t.h]
             end
             # compute the regret cost
             Δₒ = Cₖ[i,1]
