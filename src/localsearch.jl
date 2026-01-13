@@ -7,14 +7,13 @@ function intramove!(rng::AbstractRNG, s::Solution, k::Int)
     V = G.V
     I = eachindex(N)
     W = zeros(Int, I)
-    C = Inf
+    c = Inf
     for i ∈ I
         n = N[i]
         if isdepot(n) continue end
         W[i] = 1
     end
-    c = 0
-    while c < k
+    for _ ∈ 1:k
         i = sample(rng, I, Weights(W))
         n = N[i]
         t = N[n.t]
@@ -22,7 +21,6 @@ function intramove!(rng::AbstractRNG, s::Solution, k::Int)
         v = V[n.v]
         removenode!(n, t, h, v, s)
         W[i] = 0
-        c += 1
         # find best insertion
         z = f(s)
         v = V[n.v]
