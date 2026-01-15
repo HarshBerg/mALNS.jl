@@ -17,6 +17,7 @@ include("initialize.jl")
 include("remove.jl")
 include("visualize.jl")
 include("insert.jl")
+include("localsearch.jl")
 
 # TODO: Export function here
 export build, initialize, f, visualize
