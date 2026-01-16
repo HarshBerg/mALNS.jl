@@ -86,6 +86,9 @@ function swap!(rng::AbstractRNG, k::Int, s::Solution; scope::Symbol)
     end
     return s
 end
+# case 1: tₘ → m (tₙ) → n (hₘ) → hₙ
+# case 2: tₙ → n (tₘ) → m (hₙ) → hₘ
+# case 3: all other cases
 
 function opt!(rng::AbstractRNG, k::Int, s::Solution; scope::Symbol)
 end
