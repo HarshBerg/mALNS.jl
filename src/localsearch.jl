@@ -38,7 +38,6 @@ function move!(rng::AbstractRNG, k::Int, s::Solution; scope::Symbol)
     end
     return s
 end
-# TODO: @code_warntype move!(rng, k, s; scope=:inter & :intra).
 
 function swap!(rng::AbstractRNG, k::Int, s::Solution; scope::Symbol)
     G = s.G
@@ -50,54 +49,65 @@ function swap!(rng::AbstractRNG, k::Int, s::Solution; scope::Symbol)
     for _ ∈ 1:k
         i = sample(rng, I, Weights(Wₙ))
         n = N[i]
-        t = N[n.t]
-        h = N[n.h]
-        v = V[n.v]
-        removenode!(n, t, h, v, s)
+        tₙ = N[n.t]
+        hₙ = N[n.h]
+        vₙ = V[n.v]
+        removenode!(n, tₙ, hₙ, vₙ, s)
         c = 0.
-        p = (t.i, h.i, v.i)
+        p = (tₙ.i, hₙ.i, vₙ.i)
         z = f(s)
-        v₂ = sample(rng, V, Weights(Wᵥ[n.i]))
-        n₂ = N[v₂.s]
-        t₂ = N[1]
-        h₂ = N[n₂.h]
-        for _ ∈ 0:v₂.n
+        vₘ = sample(rng, V, Weights(Wᵥ[n.i]))
+        m  = N[vₘ.s]
+        tₘ = N[1]
+        hₘ = N[m.h]
+        for _ ∈ 0:vₘ.n
             # t-n-n₂-h
-            if isequal(n, n₂.t) #|| isequal(n, n₂.h)
-                removenode!(n₂, t, h₂, v₂, s)
-                insertnode!(n, t, h₂, v₂, s)
-                insertnode!(n₂, t, n, v₂, s)
-            # t-n₂-n-h
-            elseif isequal(n₂, n.t)
-                removenode!(n₂, t₂, h, v₂, s)
-                insertnode!(n, t₂, h, v₂, s)
-                insertnode!(n₂, n, h, v₂, s)
-            else 
-                removenode!(n₂, t₂, h₂, v₂, s)
-                insertnode!(n, t₂, h₂, v₂, s)
-                insertnode!(n₂, t, h, v, s)
+            if isequal(n, m.t)
+                insertnode!(n, m, hₘ, vₘ, s)
                 z′ = f(s)
                 Δ  = z′ - z
-            if Δ < c c, p = Δ, (t₂.i, h₂.i, v₂.i) end
-            removenode!(n, t₂, h₂, v₂, s)
-            removenode!(n₂, t, h, v, s)
-            insertnode!(n₂, t₂, h₂, v₂, s)
-            t₂ = n₂
-            n₂ = h₂
-            h₂ = N[n₂.h]
+                if Δ < c c, p = Δ, (tₘ.i, hₘ.i, vₘ.i) end
+                removenode!(n, m, hₘ, vₘ, s)
+            # t-n₂-n-h
+            elseif isequal(m, n.t)
+                insertnode!(n, tₘ, m, vₘ, s)
+                z′ = f(s)
+                Δ  = z′ - z
+                if Δ < c c, p = Δ, (tₘ.i, hₘ.i, vₘ.i) end
+                removenode!(n, tₘ, m, vₘ, s)
+            else 
+                removenode!(m, tₘ, hₘ, vₘ, s)
+                insertnode!(n, tₘ, hₘ, vₘ, s)
+                insertnode!(m, tₙ, hₙ, vₙ, s)
+                z′ = f(s)
+                Δ  = z′ - z
+                if Δ < c c, p = Δ, (tₘ.i, hₘ.i, vₘ.i) end
+                removenode!(n, tₘ, hₘ, vₘ, s)
+                removenode!(m, tₙ, hₙ, vₙ, s)
+                insertnode!(m, tₘ, hₘ, vₘ, s)
             end
+            tₘ = m
+            m = hₘ
+            hₘ = N[m.h]
         end
         # re-insert at best position
-        t₂ = N[p[1]]
-        h₂ = N[p[2]]
-        v₂ = V[p[3]]
-        n₂ = N[h₂.t]
-        removenode!(n₂, t₂, h₂, v₂, s)
-        insertnode!(n, t₂, h₂, v₂, s)
-        insertnode!(n₂, t, h, v, s)
+        tₘ = N[p[1]]
+        hₘ = N[p[2]]
+        vₘ = V[p[3]]
+        m  = N[hₘ.t]
+        if isequal(n, m.t)
+            insertnode!(n, m, hₘ, vₘ, s)
+        elseif isequal(m, n.t)
+            insertnode!(n, tₘ, m, vₘ, s)
+        else 
+            removenode!(m, tₘ, hₘ, vₘ, s)
+            insertnode!(n, tₘ, hₘ, vₘ, s)
+            insertnode!(m, tₙ, hₙ, vₙ, s)
+        end
     end
     return s
 end
+# TODO: @code_warntype move!(rng, k, s; scope=:inter & :intra).
 
 function opt!(rng::AbstractRNG, k::Int, s::Solution; scope::Symbol)
 end
