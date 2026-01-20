@@ -62,11 +62,22 @@ function swap!(rng::AbstractRNG, k::Int, s::Solution; scope::Symbol)
         t₂ = N[1]
         h₂ = N[n₂.h]
         for _ ∈ 0:v₂.n
-            removenode!(n₂, t₂, h₂, v₂, s)
-            insertnode!(n, t₂, h₂, v₂, s)
-            insertnode!(n₂, t, h, v, s)
-            z′ = f(s)
-            Δ  = z′ - z
+            # t-n-n₂-h
+            if isequal(n, n₂.t) #|| isequal(n, n₂.h)
+                removenode!(n₂, t, h₂, v₂, s)
+                insertnode!(n, t, h₂, v₂, s)
+                insertnode!(n₂, t, n, v₂, s)
+            # t-n₂-n-h
+            elseif isequal(n₂, n.t)
+                removenode!(n₂, t₂, h, v₂, s)
+                insertnode!(n, t₂, h, v₂, s)
+                insertnode!(n₂, n, h, v₂, s)
+            else 
+                removenode!(n₂, t₂, h₂, v₂, s)
+                insertnode!(n, t₂, h₂, v₂, s)
+                insertnode!(n₂, t, h, v, s)
+                z′ = f(s)
+                Δ  = z′ - z
             if Δ < c c, p = Δ, (t₂.i, h₂.i, v₂.i) end
             removenode!(n, t₂, h₂, v₂, s)
             removenode!(n₂, t, h, v, s)
@@ -74,6 +85,7 @@ function swap!(rng::AbstractRNG, k::Int, s::Solution; scope::Symbol)
             t₂ = n₂
             n₂ = h₂
             h₂ = N[n₂.h]
+            end
         end
         # re-insert at best position
         t₂ = N[p[1]]
@@ -86,9 +98,6 @@ function swap!(rng::AbstractRNG, k::Int, s::Solution; scope::Symbol)
     end
     return s
 end
-# case 1: tₘ → m (tₙ) → n (hₘ) → hₙ
-# case 2: tₙ → n (tₘ) → m (hₙ) → hₘ
-# case 3: all other cases
 
 function opt!(rng::AbstractRNG, k::Int, s::Solution; scope::Symbol)
 end
