@@ -107,7 +107,47 @@ function swap!(rng::AbstractRNG, k::Int, s::Solution; scope::Symbol)
     end
     return s
 end
-# TODO: @code_warntype move!(rng, k, s; scope=:inter & :intra).
 
 function opt!(rng::AbstractRNG, k::Int, s::Solution; scope::Symbol)
-end
+    G = s.G
+    N = G.N
+    V = G.V
+    A = G.A
+    I = eachindex(N)
+    Wₙ = [isdepot(n) ? 0 : 1 for n ∈ N]
+    Wᵥ = [[isequal(n.v, v.i) ? isequal(scope, :intra) : isequal(scope, :inter) for v ∈ V] for n ∈ N]
+    for _ ∈ 1:k
+        i = sample(rng, I, Weights(Wₙ))
+        t = N[i]
+        n = N[t.h]
+        h = N[n.h]
+        v = V[n.v]
+        removenode!(n, t, h, v, s) 
+        c = 0.
+        p = (t.i, h.i, v.i)
+        z = f(s)
+        v = sample(rng, V, Weights(Wᵥ[n.i]))
+        m = N[v.s]
+        tₘ = N[1]
+        hₘ = N[n.h]
+        for _ ∈ 0:v.n
+            if isequal(n, m.h)
+                insertnode!(n, tₘ, m, v, s)
+            elseif isequal(n, m.t)
+                insertnode!(n, m, hₘ, v, s)
+            else
+                removenode!(n, tₘ, hₘ, v, s)
+                insertnode!(m, t, tₘ, v, s)
+                insertnode!(n, t, hₘ, v, s)
+                z′ = f(s)
+                Δ  = z′ - z
+                if Δ < c c, p = Δ, (tₘ.i, hₘ.i, v.i) end
+                removenode!(m, t, tₘ, v, s)
+                removenode!(n, t, hₘ, v, s)
+                insertnode!(n, tₘ, hₘ, v, s)
+                tₘ = m
+                m = hₘ
+                hₘ = N[m.h]
+            end
+        end
+        # re-insert at best position
