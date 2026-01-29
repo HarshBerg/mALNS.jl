@@ -118,36 +118,50 @@ function opt!(rng::AbstractRNG, k::Int, s::Solution; scope::Symbol)
     Wᵥ = [[isequal(n.v, v.i) ? isequal(scope, :intra) : isequal(scope, :inter) for v ∈ V] for n ∈ N]
     for _ ∈ 1:k
         i = sample(rng, I, Weights(Wₙ))
-        t = N[i]
-        n = N[t.h]
-        h = N[n.h]
-        v = V[n.v]
-        removenode!(n, t, h, v, s) 
+        n = N[i]
+        tₙ = N[n.t]
+        hₙ = N[n.h]
+        vₙ = V[n.v]
+        removenode!(n, tₙ, hₙ, vₙ, s)
         c = 0.
-        p = (t.i, h.i, v.i)
+        p = (tₙ.i, hₙ.i, vₙ.i)
         z = f(s)
-        v = sample(rng, V, Weights(Wᵥ[n.i]))
+        vₘ = sample(rng, V, Weights(Wᵥ[n.i]))
         m = N[v.s]
         tₘ = N[1]
-        hₘ = N[n.h]
+        hₘ = N[m.h]
         for _ ∈ 0:v.n
-            if isequal(n, m.h)
-                insertnode!(n, tₘ, m, v, s)
-            elseif isequal(n, m.t)
-                insertnode!(n, m, hₘ, v, s)
-            else
-                removenode!(n, tₘ, hₘ, v, s)
-                insertnode!(m, t, tₘ, v, s)
-                insertnode!(n, t, hₘ, v, s)
-                z′ = f(s)
-                Δ  = z′ - z
-                if Δ < c c, p = Δ, (tₘ.i, hₘ.i, v.i) end
-                removenode!(m, t, tₘ, v, s)
-                removenode!(n, t, hₘ, v, s)
-                insertnode!(n, tₘ, hₘ, v, s)
-                tₘ = m
-                m = hₘ
-                hₘ = N[m.h]
-            end
+            removenode!(m, tₘ, hₘ, vₘ, s)
+            insertnode!(n, tₘ, hₘ, vₘ, s)
+            insertnode!(m, tₙ, hₙ, vₙ, s)
+            o = N[m.h]
+            h = N[o.h]
+            t = N[o.t]
+            while !isequal(n, o)
+                removenode!(o, t, h, vₘ, s)
+                insertnode!(o, h, t, vₘ, s)
+                t = o
+                o = h
+                h = N[o.h]
+            end 
+            z′ = f(s)
+            Δ  = z′ - z
+            if Δ < c c, p = Δ, (tₘ.i, hₘ.i, vₘ.i) end
+            removenode!(m, tₙ, hₙ, vₙ, s)
+            removenode!(n, tₘ, hₘ, vₘ, s)
+            insertnode!(m, tₘ, hₘ, vₘ, s)
+            tₘ = m
+            m = hₘ
+            hₘ = N[m.h]
         end
         # re-insert at best position
+        tₘ = N[p[1]]
+        hₘ = N[p[2]]
+        vₘ = V[p[3]]
+        m  = N[hₘ.t]
+        removenode!(m, tₘ, hₘ, vₘ, s)
+        insertnode!(n, tₘ, hₘ, vₘ, s)
+        insertnode!(m, tₙ, hₙ, vₙ, s)
+    end
+    return s
+end
