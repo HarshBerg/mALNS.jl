@@ -9,7 +9,7 @@ Optimization parameters for Adaptive Large Neighborhood Search (ALNS).
 - m     :   Number of iterations in a local search
 - Ψᵣ    :   Tuple of removal operators
 - Ψᵢ    :   Tuple of insertion operators
-- Ψₗ    :   Tuple of local search operators
+- Ψₗ     :   Tuple of local search operators
 - σ₁    :   Score for a new best solution
 - σ₂    :   Score for a new better solution
 - σ₃    :   Score for a new worse but accepted solution
@@ -27,8 +27,22 @@ Optimization parameters for Adaptive Large Neighborhood Search (ALNS).
 Base.@kwdef struct ALNSparameters{R<:Tuple, I<:Tuple, L<:Tuple}
     j::Int
     k::Int
-    ...
+    n::Int
+    m::Int
     Ψᵣ::R
     Ψᵢ::I
     Ψₗ::L
+    σ₁::Float64
+    σ₂::Float64
+    σ₃::Float64
+    μ̲::Float64
+    e̲::Int
+    μ̅::Float64
+    e̅::Int
+    ω̅::Float64
+    τ̅::Float64
+    ω̲::Float64
+    τ̲::Float64
+    θ::Float64
+    ρ::Float64
 end
