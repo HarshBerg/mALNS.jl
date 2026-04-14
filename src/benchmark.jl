@@ -2,12 +2,11 @@ using mALNS
 using CSV
 using Revise
 using Random
-using CPUTime
 using DataFrames
 
 let
     # Define instances
-    instances = ["XL-n1094-k157"]
+    instances = ["A-n32-k5"]
     # Define random number generator seeds
     seeds = [2807]#[1010, 1106, 1509, 1604, 1905, 2104, 2412, 2703, 2710, 2807]
     # Dataframes to store solution quality and run time
@@ -15,9 +14,9 @@ let
     dfᵗ = DataFrame([instances, zeros(length(instances)), [zeros(length(instances)) for _ ∈ seeds]...], ["instance", "initial", ["$seed" for seed ∈ seeds]...])
     for (i,instance) ∈ enumerate(instances)
         # Visualize instance
-        display(visualize("XL/$instance"))
+        display(visualize(instance))
         # Define inital solution method and build the initial solution
-        t₁ = @elapsed s₁ = initialize("XL/$instance");
+        t₁ = @elapsed s₁ = initialize(instance);
         # Visualize initial solution
         display(visualize(s₁))
         # Fetch solution characteristics
@@ -42,29 +41,17 @@ let
                 k   =   10                      ,
                 n   =   x                       ,
                 m   =   100x                    ,
-                Ψᵣ  =   (
-                            randomnode!         ,
-                            randomarc!          ,
-                            randomsegment!      ,
-                            relatednode!        ,
-                            relatedarc!         ,
-                            relatedsegment!     ,
-                            worstnode!          ,
-                            worstarc!           ,
-                            worstsegment!
-                        )                       ,
-                Ψᵢ  =   (
-                            bestprecise!        ,
-                            bestperturb!        ,
-                            greedyprecise!      ,
-                            greedyperturb!      ,
-                            regret2precise!     ,
-                            regret2perturb!     ,
-                            regret3precise!     ,
-                            regret3perturb!     ,
-                            regret5precise!     ,
-                            regret5perturb!
-                        )                       ,
+                Ψᵣ  =   [
+                            randomnode!         randomarc!          randomsegment!      ;
+                            relatednode!        relatedarc!         relatedsegment!     ;
+                            worstnode!          worstarc!           worstsegment!
+                        ]                       ,
+                Ψᵢ  =   [
+                            bestprecise!        bestperturb!        ;
+                            greedyprecise!      greedyperturb!      ;
+                            regret2precise!     regret2perturb!     ;
+                            regret3precise!     regret3perturb!
+                        ]                       ,
                 Ψₗ  =   (
                             intramove!          ,
                             intermove!          ,
@@ -100,7 +87,7 @@ let
             dfᶠ[i,j+2] = f(s₂)
             dfᵗ[i,j+2] = t₂
             # Save results
-            sol(s₂, "solutions/$instance-seed$seed-v4")
+            # sol(s₂, "solutions/$instance-seed$seed-v4")
             CSV.write("objective_function.csv", dfᶠ)
             CSV.write("run_time.csv", dfᵗ)
         end
