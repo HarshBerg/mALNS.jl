@@ -18,8 +18,11 @@ include("remove.jl")
 include("visualize.jl")
 include("insert.jl")
 include("localsearch.jl")
+include("parameters.jl")
+include("ALNS.jl")
+include("benchmark.jl")
 
 # TODO: Export function here
-export build, initialize, f, visualize
+export build, initialize, f, visualize, ALNS, ALNSparameters, benchmark
 
 end
