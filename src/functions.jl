@@ -30,6 +30,16 @@ function vectorize(s::Solution)
     return Z
 end
 
+function isfeasible(s::Solution)
+    G = s.G
+    N = G.N
+    V = G.V
+    for v in V
+        # TODO: Return false if capacity constraint is violated for vehicle v
+    end
+    return true
+end
+
 @inline f(s::Solution) = s.c + s.p * 10 ^ ceil(log10(s.c))
 
 @inline h(s::Solution) = hash(s) # TODO: Alternatively, check hashing with Node Vector instead

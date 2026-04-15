@@ -46,3 +46,5 @@ Base.@kwdef struct ALNSparameters{R<:Tuple, I<:Tuple, L<:Tuple}
     θ::Float64
     ρ::Float64
 end
+
+# TODO: You will have to update your struct to appropriately define Ψᵣ, Ψᵢ, and Ψₗ as vectors for cALNS and matrices for mALNS
