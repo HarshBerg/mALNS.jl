@@ -41,7 +41,9 @@
     end
     return s
 end
-# TODO: @code_warntype best!(rng, s; mode=:default).
+
+bestprecise!(rng::AbstractRNG, s::Solution) = best!(rng, s; mode=:precise)
+bestperturb!(rng::AbstractRNG, s::Solution) = best!(rng, s; mode=:perturb)
 
 function greedy!(rng::AbstractRNG, s::Solution; mode::Symbol)
     # pre-initialize
@@ -97,6 +99,9 @@ function greedy!(rng::AbstractRNG, s::Solution; mode::Symbol)
     end
     return s
 end
+
+greedyprecise!(rng::AbstractRNG, s::Solution) = greedy!(rng, s; mode=:precise)
+greedyperturb!(rng::AbstractRNG, s::Solution) = greedy!(rng, s; mode=:perturb)
 
 function regretk!(rng::AbstractRNG, s::Solution; K::Int, mode::Symbol)
     # pre-initialize
@@ -162,5 +167,7 @@ function regretk!(rng::AbstractRNG, s::Solution; K::Int, mode::Symbol)
     return s
 end
 
-#fprecise(rng::AbstractRNG, s::Solution) = f(rng, s; mode=:precise)
-#fpertrub(rng::AbstractRNG, s::Solution) = f(rng, s; mode=:perturb)  
+regret2precise!(rng::AbstractRNG, s::Solution) = regretk!(rng, s; K=2, mode=:precise)
+regret2perturb!(rng::AbstractRNG, s::Solution) = regretk!(rng, s; K=2, mode=:perturb)
+regret3precise!(rng::AbstractRNG, s::Solution) = regretk!(rng, s; K=3, mode=:precise)
+regret3perturb!(rng::AbstractRNG, s::Solution) = regretk!(rng, s; K=3, mode=:perturb)
