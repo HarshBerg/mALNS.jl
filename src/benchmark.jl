@@ -52,14 +52,12 @@ let
                             regret2precise!     regret2perturb!     ;
                             regret3precise!     regret3perturb!
                         ]                       ,
-                Ψₗ  =   (
+                Ψₗ  =   [
                             intramove!          ,
                             intermove!          ,
                             intraswap!          ,
-                            interswap!          ,
-                            intraopt!           ,
-                            interopt!
-                        )                       ,
+                            interswap!          
+                        ]                       ,
                 σ₁  =   15.0                    ,
                 σ₂  =   10.0                    ,
                 σ₃  =   3.0                     ,
@@ -75,8 +73,7 @@ let
                 ρ   =   0.1
             );
             # Run ALNS and fetch best solution
-            t₂ = @elapsed s₂ = ALNS(rng, χ, s₁);
-            t₂ += @elapsed s₂ = ALNS(rng, χ, s₂);
+            t₂ = @elapsed s₂ = modALNS(rng, χ, s₁);
             # Visualize best solution
             display(visualize(s₂))
             # Fetch solution characteristics
