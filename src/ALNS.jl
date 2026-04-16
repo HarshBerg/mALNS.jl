@@ -12,6 +12,14 @@ Takes `mute` as argument. If `true` mutes progressbar and pltcnv output.
 Optionally specify a random number generator `rng` as the first argument
 (defaults to `Random.GLOBAL_RNG`).
 """
+@inline function removalcount(rng::AbstractRNG, s::Solution, μ̲::Float64, e̲::Int, μ̅::Float64, e̅::Int)
+    customers = count(n -> iscustomer(n) && isclose(n), s.G.N)
+    customers == 0 && return 0
+    lo = min(customers, max(e̲, ceil(Int, μ̲ * customers)))
+    hi = min(customers, max(lo, min(e̅, floor(Int, μ̅ * customers))))
+    return rand(rng, lo:hi)
+end
+
 function conALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=false)
     # Step 0: Pre-initialize
     j,k = χ.j, χ.k
@@ -26,7 +34,7 @@ function conALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=fals
     R = eachindex(Ψᵣ)
     I = eachindex(Ψᵢ)
     L = eachindex(Ψₗ)
-    X = Vector{Float64}(undef, 1 + j * n) 
+    X = fill(zero(UInt), 1 + j * n)
     Z = Vector{Float64}(undef, 1 + j * n)
     # Step 1: Initialize
     s = deepcopy(sₒ)
@@ -56,18 +64,22 @@ function conALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=fals
         # Step 2.3: Loop over iterations within the segment
         for iteration ∈ 1:n
             # Step 2.3.1: Randomly select a removal and an insertion operator based on operator selection probabilities, and consequently update count for the selected operators
-            r = rand(rng, R, Weights(Pᵣ))
-            i = rand(rng, I, Weights(Pᵢ))
+            r = sample(rng, R, Weights(Pᵣ))
+            i = sample(rng, I, Weights(Pᵢ))
             Cᵣ[r] += 1
             Cᵢ[i] += 1
             # Step 2.3.2: Using the selected removal and insertion operators destroy and repair the current solution to develop a new solution
-            s′ = Ψᵢ[i](Ψᵣ[r](s))
+            q = removalcount(rng, s, μ̲, e̲, μ̅, e̅)
+            s′ = deepcopy(s)
+            s′ = Ψᵣ[r](rng, q, s′)
+            s′ = Ψᵢ[i](rng, s′)
             x′ = h(s′)
             z′ = f(s′)
             # Step 2.3.3: If this new solution is better than the best solution, then set the best solution and the current solution to the new solution, and accordingly update scores of the selected removal and insertion operators by σ₁
             if z′ < z_best
                 s_best = s′
                 s = s′
+                x = x′
                 z = z′
                 z_best = z′
                 Sᵣ[r] += σ₁
@@ -75,6 +87,7 @@ function conALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=fals
             # Step 2.3.4: Else if this new solution is only better than the current solution, then set the current solution to the new solution and accordingly update scores of the selected removal and insertion operators by σ₂
             elseif z′ < z
                 s = s′
+                x = x′
                 z = z′
                 if x′ ∉ X
                     Sᵣ[r] += σ₂
@@ -82,8 +95,9 @@ function conALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=fals
                 end
             # Step 2.3.5: Else accept the new solution with simulated annealing acceptance criterion. Further, if the new solution is also newly found then update operator scores by σ₃
             else 
-                if rand(rng) < exp((z - z') / t)
+                if rand(rng) < exp((z - z′) / t)
                     s = s′
+                    x = x′
                     z = z′
                     if x′ ∉ X
                         Sᵣ[r] += σ₃
@@ -94,7 +108,8 @@ function conALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=fals
             # Step 2.3.6: Update temperature according to cooling schedule
             t = max(ω̲  * f(s_best) / log(1 / τ̲), t * θ) 
             # Step 2.3.7: Store best solution from each iteration
-            
+            X[1 + (segment - 1) * n + iteration] = x
+            Z[1 + (segment - 1) * n + iteration] = z
         end
         # Step 2.4: Update weights for every removal and insertion operator (module)
         for r ∈ R if !iszero(Cᵣ[r]) Wᵣ[r] = (1 - ρ) * Wᵣ[r] + ρ * Sᵣ[r] / Cᵣ[r] end end
@@ -103,21 +118,22 @@ function conALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=fals
         s = sₒ
         # Step 2.6: Perform local search
         s′ = deepcopy(s)
-        for l ∈ L s′ = Ψₗ[l](s′) end
+        for l ∈ L
+            s′ = Ψₗ[l](rng, m, s′)
+        end
         x′ = h(s′)
         z′ = f(s′)
         if z′ < z_best
             s_best = s′
             s = s′
+            x = x′
             z = z′
             z_best = z′
         elseif z′ < z
             s = s′
+            x = x′
             z = z′
         end
-        x = x′
-        X[segment * n + iteration] = x
-        Z[segment * n + iteration] = z
     end
     # Step 3: Display the convergence plot and return the best solution
     return s_best
@@ -153,7 +169,7 @@ function modALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=fals
     Rᵣ,Rᵪ = size(Ψᵣ)
     Iᵣ,Iᵪ = size(Ψᵢ)  
     L = eachindex(Ψₗ)
-    X = Vector{Float64}(undef, 1 + j * n) 
+    X = fill(zero(UInt), 1 + j * n)
     Z = Vector{Float64}(undef, 1 + j * n)
     # Step 1: Initialize
     s = deepcopy(sₒ)
@@ -194,8 +210,8 @@ function modALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=fals
         # Step 2.3: Loop over iterations within the segment
         for iteration ∈ 1:n
             # Step 2.3.1: Randomly select a removal and an insertion operator based on operator selection probabilities, and consequently update count for the selected operators
-            r = [rand(rng, 1:Rᵣ, Weights(Pᵣ[row, :])) for row ∈ 1:Rᵣ]
-            i = [rand(rng, 1:Iᵣ, Weights(Pᵢ[row, :])) for row ∈ 1:Iᵣ]
+            r = [sample(rng, 1:Rᵪ, Weights(Pᵣ[row, :])) for row ∈ 1:Rᵣ]
+            i = [sample(rng, 1:Iᵪ, Weights(Pᵢ[row, :])) for row ∈ 1:Iᵣ]
             for row ∈ 1:Rᵣ
                 Cᵣ[row, r[row]] += 1
             end
@@ -203,12 +219,13 @@ function modALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=fals
                 Cᵢ[row, i[row]] += 1
             end
             # Step 2.3.2: Using the selected removal and insertion operators destroy and repair the current solution to develop a new solution
-            s′ = Ψᵢ[i](Ψᵣ[r](s))
+            q = removalcount(rng, s, μ̲, e̲, μ̅, e̅)
+            s′ = deepcopy(s)
             for row ∈ 1:Rᵣ
-                s′ = Ψᵣ[row, r[row]](s′)
+                s′ = Ψᵣ[row, r[row]](rng, q, s′)
             end
             for row ∈ 1:Iᵣ
-                s′ = Ψᵢ[row, i[row]](s′)
+                s′ = Ψᵢ[row, i[row]](rng, s′)
             end
             x′ = h(s′)
             z′ = f(s′)
@@ -216,33 +233,49 @@ function modALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=fals
             if z′ < z_best
                 s_best = s′
                 s = s′
+                x = x′
                 z = z′
                 z_best = z′
-                Sᵣ[r] += σ₁
-                Sᵢ[i] += σ₁
+                for row ∈ 1:Rᵣ
+                    Sᵣ[row, r[row]] += σ₁
+                end
+                for row ∈ 1:Iᵣ
+                    Sᵢ[row, i[row]] += σ₁
+                end
             # Step 2.3.4: Else if this new solution is only better than the current solution, then set the current solution to the new solution and accordingly update scores of the selected removal and insertion operators by σ₂
             elseif z′ < z
                 s = s′
+                x = x′
                 z = z′
                 if x′ ∉ X
-                    Sᵣ[r] += σ₂
-                    Sᵢ[i] += σ₂
+                    for row ∈ 1:Rᵣ
+                        Sᵣ[row, r[row]] += σ₂
+                    end
+                    for row ∈ 1:Iᵣ
+                        Sᵢ[row, i[row]] += σ₂
+                    end
                 end
             # Step 2.3.5: Else accept the new solution with simulated annealing acceptance criterion. Further, if the new solution is also newly found then update operator scores by σ₃
             else 
-                if rand(rng) < exp((z - z') / t)
+                if rand(rng) < exp((z - z′) / t)
                     s = s′
+                    x = x′
                     z = z′
                     if x′ ∉ X
-                        Sᵣ[r] += σ₃
-                        Sᵢ[i] += σ₃
+                        for row ∈ 1:Rᵣ
+                            Sᵣ[row, r[row]] += σ₃
+                        end
+                        for row ∈ 1:Iᵣ
+                            Sᵢ[row, i[row]] += σ₃
+                        end
                     end
                 end
             end
             # Step 2.3.6: Update temperature according to cooling schedule
             t = max(ω̲  * f(s_best) / log(1 / τ̲), t * θ) 
             # Step 2.3.7: Store best solution from each iteration
-            
+            X[1 + (segment - 1) * n + iteration] = x
+            Z[1 + (segment - 1) * n + iteration] = z
         end
         # Step 2.4: Update weights for every removal and insertion operator (module)
         for row ∈ 1:Rᵣ
@@ -263,21 +296,22 @@ function modALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=fals
         s = sₒ
         # Step 2.6: Perform local search
         s′ = deepcopy(s)
-        for l ∈ L s′ = Ψₗ[l](s′) end
+        for l ∈ L
+            s′ = Ψₗ[l](rng, m, s′)
+        end
         x′ = h(s′)
         z′ = f(s′)
         if z′ < z_best
             s_best = s′
             s = s′
+            x = x′
             z = z′
             z_best = z′
         elseif z′ < z
             s = s′
+            x = x′
             z = z′
         end
-        x = x′
-        X[segment * n + iteration] = x
-        Z[segment * n + iteration] = z
     end
     # Step 3: Display the convergence plot and return the best solution
     return s_best
