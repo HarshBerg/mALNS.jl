@@ -12,7 +12,7 @@ Takes `mute` as argument. If `true` mutes progressbar and pltcnv output.
 Optionally specify a random number generator `rng` as the first argument
 (defaults to `Random.GLOBAL_RNG`).
 """
-function cALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=false)
+function conALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=false)
     # Step 0: Pre-initialize
     j,k = χ.j, χ.k
     n,m = χ.n, χ.m
