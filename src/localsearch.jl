@@ -39,6 +39,9 @@ function move!(rng::AbstractRNG, k::Int, s::Solution; scope::Symbol)
     return s
 end
 
+intramove!(rng::AbstractRNG, k::Int, s::Solution) = move!(rng, k, s; scope=:intra)
+intermove!(rng::AbstractRNG, k::Int, s::Solution) = move!(rng, k, s; scope=:inter)
+
 function swap!(rng::AbstractRNG, k::Int, s::Solution; scope::Symbol)
     G = s.G
     N = G.N
@@ -107,6 +110,10 @@ function swap!(rng::AbstractRNG, k::Int, s::Solution; scope::Symbol)
     end
     return s
 end
+
+interswap!(rng::AbstractRNG, k::Int, s::Solution) = swap!(rng, k, s; scope=:inter)
+intraswap!(rng::AbstractRNG, k::Int, s::Solution) = swap!(rng, k, s; scope=:intra)
+
 """
 function intraopt!(rng::AbstractRNG, k::Int, s::Solution)
     G = s.G
