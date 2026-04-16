@@ -35,14 +35,28 @@ function isfeasible(s::Solution)
     N = G.N
     V = G.V
     for v in V
-        # TODO: Return false if capacity constraint is violated for vehicle v
+        v.l > v.q && return false
     end
     return true
 end
 
 @inline f(s::Solution) = s.c + s.p * 10 ^ ceil(log10(s.c))
 
-@inline h(s::Solution) = hash(s) # TODO: Alternatively, check hashing with Node Vector instead
+@inline function h(s::Solution)
+    G = s.G
+    N = G.N
+    z = zero(UInt)
+    for v in G.V
+        z = hash(1, z)
+        n = N[v.s]
+        for _ in 1:v.n
+            z = hash(n.i, z)
+            n = N[n.h]
+        end
+        z = hash(1, z)
+    end
+    return z
+end
 
 @inline Base.deepcopy_internal(G::Graph, dict::IdDict) = Graph(Base.deepcopy_internal(G.N, dict), G.A, Base.deepcopy_internal(G.V, dict))
 
