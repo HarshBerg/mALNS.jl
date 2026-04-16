@@ -7,9 +7,9 @@ Optimization parameters for Adaptive Large Neighborhood Search (ALNS).
 - k     :   Number of segments to reset ALNS
 - n     :   Number of iterations in an ALNS segment
 - m     :   Number of iterations in a local search
-- Ψᵣ    :   Tuple of removal operators
-- Ψᵢ    :   Tuple of insertion operators
-- Ψₗ     :   Tuple of local search operators
+- Ψᵣ    :   Removal operators - 'Vector' for cALNS, 'Matrix' for mALNS
+- Ψᵢ    :   Insertion operators - 'Vector' for cALNS, 'Matrix' for mALNS
+- Ψₗ     :   Vector of local search operators
 - σ₁    :   Score for a new best solution
 - σ₂    :   Score for a new better solution
 - σ₃    :   Score for a new worse but accepted solution
@@ -24,7 +24,7 @@ Optimization parameters for Adaptive Large Neighborhood Search (ALNS).
 - θ     :   Cooling rate
 - ρ     :   Reaction factor
 """
-Base.@kwdef struct ALNSparameters{R<:Tuple, I<:Tuple, L<:Tuple}
+Base.@kwdef struct ALNSparameters{R<:AbstractVecOrMat, I<:AbstractVecOrMat, L<:AbstractVecOrMat}
     j::Int
     k::Int
     n::Int
@@ -46,5 +46,3 @@ Base.@kwdef struct ALNSparameters{R<:Tuple, I<:Tuple, L<:Tuple}
     θ::Float64
     ρ::Float64
 end
-
-# TODO: You will have to update your struct to appropriately define Ψᵣ, Ψᵢ, and Ψₗ as vectors for cALNS and matrices for mALNS
