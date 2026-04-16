@@ -20,9 +20,11 @@ include("insert.jl")
 include("localsearch.jl")
 include("parameters.jl")
 include("ALNS.jl")
-include("benchmark.jl")
 
 # TODO: Export function here
-export build, initialize, f, visualize, ALNS, ALNSparameters, benchmark
+export build, initialize, f, visualize, ALNSparameters, benchmark, isfeasible, modALNS, conALNS,  
+    randomnode!, randomarc!, randomsegment!, relatednode!, relatedarc!, relatedsegment!, worstnode!, worstarc!, worstsegment!,
+    bestprecise!, bestperturb!, greedyprecise!, greedyperturb!, regret2precise!, regret2perturb!, regret3precise!, regret3perturb!,
+    intermove!, intramove!, interswap!, intraswap!
 
 end
