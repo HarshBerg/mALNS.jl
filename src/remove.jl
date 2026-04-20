@@ -20,8 +20,8 @@ Available methods include,
 Optionally specify a random number generator `rng` as the first argument
 (defaults to `Random.GLOBAL_RNG`).
 """
-remove!(rng::AbstractRNG, k::Int, s::Solution, method::Function)::Solution = method(rng, k, s)
-remove!(k::Int, s::Solution, method::Function) = remove!(Random.GLOBAL_RNG, k, s, method)
+remove!(rng::AbstractRNG, k::Int, s::Solution; method::Function)::Solution = method(rng, k, s)
+remove!(k::Int, s::Solution; method::Function) = remove!(Random.GLOBAL_RNG, k, s; method=method)
 
 """
     randomnode!(rng::AbstractRNG, k::Int, s::Solution)
@@ -40,14 +40,19 @@ function randomnode!(rng::AbstractRNG, k::Int, s::Solution)
     W = zeros(Int, I)
     for i ∈ I
         n = N[i]
-        if isdepot(n) continue end
+        if isdepot(n) || isopen(n) continue end
         W[i] = 1
     end
     # loop: remove exactly k sampled nodes
     c = 0
     while c < k
+        if iszero(sum(W)) break end
         i = sample(rng, I, Weights(W))
         n = N[i]
+        if isopen(n)
+            W[i] = 0
+            continue
+        end
         t = N[n.t]
         h = N[n.h]
         v = V[n.v]
@@ -79,7 +84,7 @@ function relatednode!(rng::AbstractRNG, k::Int, s::Solution)
     W = zeros(Float64, I)
     for i ∈ I
         n = N[i]
-        if isdepot(n) continue end
+        if isdepot(n) || isopen(n) continue end
         d = A[n.i, p.i].c
         r = 1 / (d + 1e-3)
         W[i] = r
@@ -87,8 +92,13 @@ function relatednode!(rng::AbstractRNG, k::Int, s::Solution)
     # loop: remove exactly k sampled nodes
     c = 0
     while c < k
+        if iszero(sum(W)) break end
         i = sample(rng, I, Weights(W))
         n = N[i]
+        if isopen(n)
+            W[i] = 0
+            continue
+        end
         t = N[n.t]
         h = N[n.h]
         v = V[n.v]
@@ -118,7 +128,7 @@ function worstnode!(rng::AbstractRNG, k::Int, s::Solution)
     W = zeros(Float64, I)
     for i ∈ I
         n = N[i]
-        if isdepot(n) continue end
+        if isdepot(n) || isopen(n) continue end
         t = N[n.t]
         h = N[n.h]
         W[i] = (A[t.i, n.i].c + A[n.i, h.i].c) - A[t.i, h.i].c
@@ -126,8 +136,13 @@ function worstnode!(rng::AbstractRNG, k::Int, s::Solution)
     # loop: remove exactly k sampled nodes
     c = 0
     while c < k
+        if iszero(sum(W)) break end
         i = sample(rng, I, Weights(W))
         n = N[i]
+        if isopen(n)
+            W[i] = 0
+            continue
+        end
         t = N[n.t]
         h = N[n.h]
         v = V[n.v]
@@ -164,6 +179,7 @@ function randomarc!(rng::AbstractRNG, k::Int, s::Solution)
     # loop: until at least k nodes are removed
     c = 0
     while c < k
+        if iszero(sum(W)) break end
         # sample an arc
         i = sample(rng, I, Weights(W))
         a = A[i]
@@ -207,7 +223,9 @@ function relatedarc!(rng::AbstractRNG, k::Int, s::Solution)
     # arc indices
     I = eachindex(A)
     # randomize a pivot arc
-    p = A[sample(rng, I, Weights([isequal(N[A[i].t].h, N[A[i].h].i) ? 1 : 0 for i ∈ I]))]
+    Wp = [isequal(N[A[i].t].h, N[A[i].h].i) ? 1 : 0 for i ∈ I]
+    if iszero(sum(Wp)) return s end
+    p = A[sample(rng, I, Weights(Wp))]
     # set arc weights: relatedness
     W = zeros(Float64, I)
     for i ∈ I
@@ -223,6 +241,7 @@ function relatedarc!(rng::AbstractRNG, k::Int, s::Solution)
     # loop: until at least k nodes are removed
     c = 0
     while c < k
+        if iszero(sum(W)) break end
         # sample an arc
         i = sample(rng, I, Weights(W))
         a = A[i]
@@ -277,6 +296,7 @@ function worstarc!(rng::AbstractRNG, k::Int, s::Solution)
     # loop: until at least k nodes are removed
     c = 0
     while c < k
+        if iszero(sum(W)) break end
         # sample an arc
         i = sample(rng, I, Weights(W))
         a = A[i]
@@ -323,14 +343,19 @@ function randomsegment!(rng::AbstractRNG, k::Int, s::Solution)
     W = zeros(Int, I)
     for i ∈ I
         n = N[i]
-        if isdepot(n) continue end
+        if isdepot(n) || isopen(n) continue end
         W[i] = 1
     end
     # loop: until at least k nodes are removed
-    c = 0 
+    c = 0
     while c < k
+        if iszero(sum(W)) break end
         i = sample(rng, I, Weights(W))
         n = N[i]
+        if isopen(n)
+            W[i] = 0
+            continue
+        end
         v = V[n.v]
         # determine segment size and divide it into two halves around node n
         cₒ = sample(rng, 1:v.n)
@@ -392,16 +417,21 @@ function relatedsegment!(rng::AbstractRNG, k::Int, s::Solution)
     W = zeros(Float64, I)
     for i ∈ I
         n = N[i]
-        if isdepot(n) continue end
+        if isdepot(n) || isopen(n) continue end
         d = A[n.i, p.i].c
         r = 1 / (d + 1e-3)
         W[i] = r
     end
     # loop: until at least k nodes are removed
-    c = 0 
+    c = 0
     while c < k
+        if iszero(sum(W)) break end
         i = sample(rng, I, Weights(W))
         n = N[i]
+        if isopen(n)
+            W[i] = 0
+            continue
+        end
         v = V[n.v]
         # determine segment size and divide it into two halves around node n
         cₒ = sample(rng, 1:v.n)
@@ -461,16 +491,21 @@ function worstsegment!(rng::AbstractRNG, k::Int, s::Solution)
     W = zeros(Float64, I)
     for i ∈ I
         n = N[i]
-        if isdepot(n) continue end
+        if isdepot(n) || isopen(n) continue end
         t = N[n.t]
         h = N[n.h]
         W[i] = (A[t.i, n.i].c + A[n.i, h.i].c) - A[t.i, h.i].c
     end
     # loop: until at least k nodes are removed
-    c = 0 
+    c = 0
     while c < k
+        if iszero(sum(W)) break end
         i = sample(rng, I, Weights(W))
         n = N[i]
+        if isopen(n)
+            W[i] = 0
+            continue
+        end
         v = V[n.v]
         # determine segment size and divide it into two halves around node n
         cₒ = sample(rng, 1:v.n)
@@ -525,8 +560,8 @@ function randomvehicle!(rng::AbstractRNG, k::Int, s::Solution)
     V = G.V
     # vehicle indices
     I = eachindex(V)
-    # set vehicle weights: uniform
-    W = ones(Int, I)
+    # set vehicle weights: uniform (skip empty vehicles)
+    W = [isopt(V[i]) ? 1 : 0 for i ∈ I]
     # loop: until at least k nodes are removed
     c = 0
     while c < k
