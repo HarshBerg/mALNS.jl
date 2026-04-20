@@ -12,14 +12,6 @@ Takes `mute` as argument. If `true` mutes progressbar and pltcnv output.
 Optionally specify a random number generator `rng` as the first argument
 (defaults to `Random.GLOBAL_RNG`).
 """
-@inline function removalcount(rng::AbstractRNG, s::Solution, μ̲::Float64, e̲::Int, μ̅::Float64, e̅::Int)
-    customers = count(n -> iscustomer(n) && isclose(n), s.G.N)
-    customers == 0 && return 0
-    lo = min(customers, max(e̲, ceil(Int, μ̲ * customers)))
-    hi = min(customers, max(lo, min(e̅, floor(Int, μ̅ * customers))))
-    return rand(rng, lo:hi)
-end
-
 function conALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=false)
     # Step 0: Pre-initialize
     j,k = χ.j, χ.k
@@ -36,6 +28,7 @@ function conALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=fals
     L = eachindex(Ψₗ)
     X = fill(zero(UInt), 1 + j * n)
     Z = Vector{Float64}(undef, 1 + j * n)
+    e = lastindex(sₒ.G.N)
     # Step 1: Initialize
     s = deepcopy(sₒ)
     s_best = deepcopy(sₒ)
@@ -59,8 +52,8 @@ function conALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=fals
         for r ∈ R Cᵣ[r], Sᵣ[r] = 0, 0 end
         for i ∈ I Cᵢ[i], Sᵢ[i] = 0, 0 end
         # Step 2.2: Update selection probability for every removal and insertion operator
-        for r ∈ R Pᵣ[r] = Wᵣ[r] / sum(Wᵣ) end
-        for i ∈ I Pᵢ[i] = Wᵢ[i] / sum(Wᵢ) end
+        for r ∈ R Pᵣ[r] = Wᵣ[r] / sum(values(Wᵣ)) end
+        for i ∈ I Pᵢ[i] = Wᵢ[i] / sum(values(Wᵢ)) end
         # Step 2.3: Loop over iterations within the segment
         for iteration ∈ 1:n
             # Step 2.3.1: Randomly select a removal and an insertion operator based on operator selection probabilities, and consequently update count for the selected operators
@@ -69,10 +62,10 @@ function conALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=fals
             Cᵣ[r] += 1
             Cᵢ[i] += 1
             # Step 2.3.2: Using the selected removal and insertion operators destroy and repair the current solution to develop a new solution
-            q = removalcount(rng, s, μ̲, e̲, μ̅, e̅)
+            q = Int(floor((1 - rand(rng) * min(e̲, μ̲  * e) + rand(rng) * min(e̅, μ̅  * e))))
             s′ = deepcopy(s)
-            s′ = Ψᵣ[r](rng, q, s′)
-            s′ = Ψᵢ[i](rng, s′)
+            remove!(rng, q, s′; method=Ψᵣ[r])
+            insert!(rng, s′; method=Ψᵢ[i])
             x′ = h(s′)
             z′ = f(s′)
             # Step 2.3.3: If this new solution is better than the best solution, then set the best solution and the current solution to the new solution, and accordingly update scores of the selected removal and insertion operators by σ₁
@@ -118,9 +111,7 @@ function conALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=fals
         s = sₒ
         # Step 2.6: Perform local search
         s′ = deepcopy(s)
-        for l ∈ L
-            s′ = Ψₗ[l](rng, m, s′)
-        end
+        #for l ∈ L localsearch!(rng, m, s′; method = Ψₗ[l]) end
         x′ = h(s′)
         z′ = f(s′)
         if z′ < z_best
@@ -134,11 +125,13 @@ function conALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=fals
             x = x′
             z = z′
         end
+        x = x'
+        X[1 + segment * n] = x
+        Z[1 + segment * n] = z
     end
     # Step 3: Display the convergence plot and return the best solution
     return s_best
 end
-
 
 
 """
@@ -171,6 +164,7 @@ function modALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=fals
     L = eachindex(Ψₗ)
     X = fill(zero(UInt), 1 + j * n)
     Z = Vector{Float64}(undef, 1 + j * n)
+    e = lastindex(sₒ.G.N)
     # Step 1: Initialize
     s = deepcopy(sₒ)
     s_best = deepcopy(sₒ)
@@ -190,6 +184,7 @@ function modALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=fals
     Sᵢ = zeros(Float64, Iᵣ, Iᵪ)
     # Step 2: Loop over segments
     for segment ∈ 1:j
+        println("Segment: $segment/$j")
         # Step 2.1: Reset count and score for every removal and insertion operator
         Cᵣ .= 0; Sᵣ .= 0
         Cᵢ .= 0; Sᵢ .= 0
@@ -219,7 +214,7 @@ function modALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=fals
                 Cᵢ[row, i[row]] += 1
             end
             # Step 2.3.2: Using the selected removal and insertion operators destroy and repair the current solution to develop a new solution
-            q = removalcount(rng, s, μ̲, e̲, μ̅, e̅)
+            q = Int(floor((1 - rand(rng) * min(e̲, μ̲  * e) + rand(rng) * min(e̅, μ̅  * e))))
             s′ = deepcopy(s)
             for row ∈ 1:Rᵣ
                 s′ = Ψᵣ[row, r[row]](rng, q, s′)
