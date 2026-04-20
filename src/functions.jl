@@ -40,7 +40,7 @@ function isfeasible(s::Solution)
     return true
 end
 
-@inline f(s::Solution) = s.c + s.p * 10 ^ ceil(log10(s.c))
+@inline f(s::Solution) = s.c + s.p * 10 ^ ceil(log10(max(s.c, 1.0)))
 
 @inline function h(s::Solution)
     G = s.G
