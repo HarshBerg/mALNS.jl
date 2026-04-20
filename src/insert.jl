@@ -1,4 +1,21 @@
- function best!(rng::AbstractRNG, s::Solution; mode::Symbol)
+"""
+insert!(rng::AbstractRNG, s::Solution; mode::Symbol)
+
+Insert open nodes into the solution `s` using the specified insertion heuristic.
+
+available methods include:
+- `bestprecise!` : best insertion with precise evaluation
+- `bestperturb!` : best insertion with perturbed evaluation
+- `greedyprecise!` : greedy insertion with precise evaluation
+- `greedyperturb!` : greedy insertion with perturbed evaluation
+- `regret2precise!` : regret-2 insertion with precise evaluation
+- `regret2perturb!` : regret-2 insertion with perturbed evaluation
+- `regret3precise!` : regret-3 insertion with precise evaluation
+- `regret3perturb!` : regret-3 insertion with perturbed evaluation
+"""
+insert!(rng::AbstractRNG, s::Solution; method::Function)::Solution = method(rng, s)
+
+function best!(rng::AbstractRNG, s::Solution; mode::Symbol)
     # pre-initialize
     G = s.G
     N = G.N
@@ -147,8 +164,8 @@ function regretk!(rng::AbstractRNG, s::Solution; K::Int, mode::Symbol)
             Δₒ = Cₖ[i,1]
             for (k,Δₖ) ∈ enumerate(Cₖ[i,:]) R[i] += Δₖ - Δₒ end
         end
-        # insert the best node found
-        i = argmax(R)
+        # insert the best node found (only consider open nodes)
+        i = argmax([isopen(L[ii]) ? R[ii] : -Inf for ii ∈ eachindex(L)])
         j = argmin(C[i,:])
         p = P[i,j]
         n = L[i]
@@ -162,6 +179,7 @@ function regretk!(rng::AbstractRNG, s::Solution; K::Int, mode::Symbol)
         P[i,:] .= ((0,0),)
         C[:,j] .= Inf
         P[:,j] .= ((0,0),)
+        Cₖ[i,:] .= Inf
         R .= 0
     end
     return s
