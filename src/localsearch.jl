@@ -1,16 +1,24 @@
 # move, swap, opt.
 # inter & intra route.
+"""
+    localsearch!(rng::AbstractRNG, s::Solution; method::Symbol)
+
+Apply a local search method to the solution `s` using random number generator `rng`. The local search method is specified by `method`.
+"""
+localsearch!(rng::AbstractRNG, k::Int, s::Solution; method::Function)::Solution = method(rng, k, s)
 
 function move!(rng::AbstractRNG, k::Int, s::Solution; scope::Symbol)
     G = s.G
     N = G.N
     V = G.V
     I = eachindex(N)
-    Wₙ = [isdepot(n) ? 0 : 1 for n ∈ N]
-    Wᵥ = [[isequal(n.v, v.i) ? isequal(scope, :intra) : isequal(scope, :inter) for v ∈ V] for n ∈ N]
+    Wₙ = [isdepot(n) || isopen(n) ? 0 : 1 for n ∈ N]
+    Wᵥ = [[isequal(n.v, v.i) ? isequal(scope, :intra) : (isequal(scope, :inter) && isopt(v)) for v ∈ V] for n ∈ N]
+    if iszero(sum(Wₙ)) return s end
     for _ ∈ 1:k
         i = sample(rng, I, Weights(Wₙ))
         n = N[i]
+        if iszero(sum(Wᵥ[n.i])) continue end
         t = N[n.t]
         h = N[n.h]
         v = V[n.v]
@@ -47,11 +55,13 @@ function swap!(rng::AbstractRNG, k::Int, s::Solution; scope::Symbol)
     N = G.N
     V = G.V
     I = eachindex(N)
-    Wₙ = [isdepot(n) ? 0 : 1 for n ∈ N]
-    Wᵥ = [[isequal(n.v, v.i) ? isequal(scope, :intra) : isequal(scope, :inter) for v ∈ V] for n ∈ N]
+    Wₙ = [isdepot(n) || isopen(n) ? 0 : 1 for n ∈ N]
+    Wᵥ = [[isequal(n.v, v.i) ? (isequal(scope, :intra) && v.n ≥ 2) : (isequal(scope, :inter) && isopt(v)) for v ∈ V] for n ∈ N]
+    if iszero(sum(Wₙ)) return s end
     for _ ∈ 1:k
         i = sample(rng, I, Weights(Wₙ))
         n = N[i]
+        if iszero(sum(Wᵥ[n.i])) continue end
         tₙ = N[n.t]
         hₙ = N[n.h]
         vₙ = V[n.v]
