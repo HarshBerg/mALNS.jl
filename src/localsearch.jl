@@ -57,6 +57,7 @@ function swap!(rng::AbstractRNG, k::Int, s::Solution; scope::Symbol)
     I = eachindex(N)
     Wₙ = [isdepot(n) || isopen(n) ? 0 : 1 for n ∈ N]
     Wᵥ = [[isequal(n.v, v.i) ? (isequal(scope, :intra) && v.n ≥ 2) : (isequal(scope, :inter) && isopt(v)) for v ∈ V] for n ∈ N]
+    Wₘ = 
     if iszero(sum(Wₙ)) return s end
     for _ ∈ 1:k
         i = sample(rng, I, Weights(Wₙ))
@@ -65,7 +66,6 @@ function swap!(rng::AbstractRNG, k::Int, s::Solution; scope::Symbol)
         tₙ = N[n.t]
         hₙ = N[n.h]
         vₙ = V[n.v]
-        removenode!(n, tₙ, hₙ, vₙ, s)
         c = 0.
         p = (tₙ.i, hₙ.i, vₙ.i)
         z = f(s)
@@ -74,21 +74,27 @@ function swap!(rng::AbstractRNG, k::Int, s::Solution; scope::Symbol)
         tₘ = N[1]
         hₘ = N[m.h]
         for _ ∈ 0:vₘ.n
-            # t-n-n₂-h
-            if isequal(n, m.t)
+            if isequal(n, m) continue 
+            # t-n-m-h
+            elseif isequal(n, m.t)
+                removenode!(n, tₙ, hₙ, vₙ, s)
                 insertnode!(n, m, hₘ, vₘ, s)
                 z′ = f(s)
                 Δ  = z′ - z
                 if Δ < c c, p = Δ, (tₘ.i, hₘ.i, vₘ.i) end
                 removenode!(n, m, hₘ, vₘ, s)
+                insertnode!(n, tₙ, hₙ, vₙ, s)
             # t-n₂-n-h
             elseif isequal(m, n.t)
+                removenode!(n, tₙ, hₙ, vₙ, s)
                 insertnode!(n, tₘ, m, vₘ, s)
                 z′ = f(s)
                 Δ  = z′ - z
                 if Δ < c c, p = Δ, (tₘ.i, hₘ.i, vₘ.i) end
                 removenode!(n, tₘ, m, vₘ, s)
+                insertnode!(n, tₙ, hₙ, vₙ, s)
             else 
+                removenode!(n, tₙ, hₙ, vₙ, s)
                 removenode!(m, tₘ, hₘ, vₘ, s)
                 insertnode!(n, tₘ, hₘ, vₘ, s)
                 insertnode!(m, tₙ, hₙ, vₙ, s)
@@ -97,6 +103,7 @@ function swap!(rng::AbstractRNG, k::Int, s::Solution; scope::Symbol)
                 if Δ < c c, p = Δ, (tₘ.i, hₘ.i, vₘ.i) end
                 removenode!(n, tₘ, hₘ, vₘ, s)
                 removenode!(m, tₙ, hₙ, vₙ, s)
+                insertnode!(n, tₙ, hₙ, vₙ, s)
                 insertnode!(m, tₘ, hₘ, vₘ, s)
             end
             tₘ = m
