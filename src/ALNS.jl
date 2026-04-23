@@ -46,6 +46,7 @@ function conALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=fals
     Wᵢ = ones(Float64, I)
     Sᵣ = zeros(Float64, R)
     Sᵢ = zeros(Float64, I)
+    p = Progress(n * j, desc="Computing...", color=:blue, showspeed=true)
     # Step 2: Loop over segments
     for segment ∈ 1:j
         # Step 2.1: Reset count and score for every removal and insertion operator
@@ -103,6 +104,7 @@ function conALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=fals
             # Step 2.3.7: Store best solution from each iteration
             X[1 + (segment - 1) * n + iteration] = x
             Z[1 + (segment - 1) * n + iteration] = z
+            next!(p)
         end
         # Step 2.4: Update weights for every removal and insertion operator (module)
         for r ∈ R if !iszero(Cᵣ[r]) Wᵣ[r] = (1 - ρ) * Wᵣ[r] + ρ * Sᵣ[r] / Cᵣ[r] end end
@@ -182,9 +184,9 @@ function modALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=fals
     Wᵢ = ones(Float64, Iᵣ, Iᵪ)
     Sᵣ = zeros(Float64, Rᵣ, Rᵪ)
     Sᵢ = zeros(Float64, Iᵣ, Iᵪ)
+    p = Progress(n * j, desc="Computing...", color=:blue, showspeed=true)
     # Step 2: Loop over segments
     for segment ∈ 1:j
-        println("Segment: $segment/$j")
         # Step 2.1: Reset count and score for every removal and insertion operator
         Cᵣ .= 0; Sᵣ .= 0
         Cᵢ .= 0; Sᵢ .= 0
@@ -271,6 +273,7 @@ function modALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=fals
             # Step 2.3.7: Store best solution from each iteration
             X[1 + (segment - 1) * n + iteration] = x
             Z[1 + (segment - 1) * n + iteration] = z
+            next!(p)
         end
         # Step 2.4: Update weights for every removal and insertion operator (module)
         for row ∈ 1:Rᵣ
