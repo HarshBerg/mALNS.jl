@@ -7,6 +7,7 @@ using Random
 using Revise
 using StatsBase
 using DataFrames
+using ProgressMeter
 using Distributions
 
 # TODO: Include files here
