@@ -8,7 +8,7 @@ let
     # Define instances
     instances = ["A-n32-k5"]
     # Define random number generator seeds
-    seeds = [2807]#[1010, 1106, 1509, 1604, 1905, 2104, 2412, 2703, 2710, 2807]
+    seeds = [9999] #[1010] [1106] [1509] [1604] [1905] [2104] [2412] [2703] [2710] [2807]
     # Dataframes to store solution quality and run time
     dfᶠ = DataFrame([instances, zeros(length(instances)), [zeros(length(instances)) for _ ∈ seeds]...], ["instance", "initial", ["$seed" for seed ∈ seeds]...])
     dfᵗ = DataFrame([instances, zeros(length(instances)), [zeros(length(instances)) for _ ∈ seeds]...], ["instance", "initial", ["$seed" for seed ∈ seeds]...])
@@ -56,7 +56,9 @@ let
                             intramove!          ,
                             intermove!          ,
                             intraswap!          ,
-                            interswap!          
+                            interswap!          ,
+                            intraopt!           ,
+                            interopt!           ,       
                         ]                       ,
                 σ₁  =   15.0                    ,
                 σ₂  =   10.0                    ,
