@@ -64,7 +64,7 @@ function value, repeating for `k` iterations.
 intermove!(rng::AbstractRNG, k::Int, s::Solution) = move!(rng, k, s; scope=:inter)
 
 
-# TODO: Added swap from my repository; checnk and verify what is the difference and remove your version.
+#= TODO: Added swap from my repository; checnk and verify what is the difference and remove your version.
 function swap!(rng::AbstractRNG, k::Int, s::Solution; scope::Symbol)
     G = s.G
     N = G.N
@@ -118,8 +118,7 @@ function swap!(rng::AbstractRNG, k::Int, s::Solution; scope::Symbol)
 end
 interswap!(rng::AbstractRNG, k::Int, s::Solution) = swap!(rng, k, s; scope=:inter)
 intraswap!(rng::AbstractRNG, k::Int, s::Solution) = swap!(rng, k, s; scope=:intra)
-
-
+=#
 """
     swap!(rng::AbstractRNG, k::Int, s::Solution)
 
@@ -302,7 +301,6 @@ function intraopt!(rng::AbstractRNG, k::Int, s::Solution)
     # return solution
     return s
 end
-
 """
     interopt!(rng::AbstractRNG, k::Int, s::Solution)
 
