@@ -1,11 +1,18 @@
+"""
+    removenode!(n::Node, t::Node, h::Node, v::Vehicle, s::Solution)
+
+Returns solution `s` after removing node `n` from between tail node `t` and head node `h` in vehicle `v`. 
+Updates predecessor and sucessor node state, vehicle status, and solution cost accordingly.
+"""
 function removenode!(n::Node, t::Node, h::Node, v::Vehicle, s::Solution)
     # fetch features
     G = s.G
+    A = G.A
     x = v.x * v.n
     y = v.y * v.n
-    aₜₙ = G.A[t.i, n.i]
-    aₙₕ = G.A[n.i, h.i]
-    aₜₕ = G.A[t.i, h.i]
+    aₜₙ = A[t.i, n.i]
+    aₙₕ = A[n.i, h.i]
+    aₜₕ = A[t.i, h.i]
     # remove penalty
     s.p -= (v.l > v.q) ? (v.l - v.q) : 0
     # update node
@@ -30,14 +37,21 @@ function removenode!(n::Node, t::Node, h::Node, v::Vehicle, s::Solution)
     return s
 end
 
+"""
+    insertnode!(n::Node, t::Node, h::Node, v::Vehicle, s::Solution)
+
+Returns solution `s` after inserting node `n` in between tail node `t` and head node `h` in vehicle `v`.
+Updates predecessor and sucessor node state, vehicle status, and solution cost accordingly.
+"""
 function insertnode!(n::Node, t::Node, h::Node, v::Vehicle, s::Solution)
     # fetch features
     G = s.G
+    A = G.A
     x = v.x * v.n
     y = v.y * v.n
-    aₜₙ = G.A[t.i, n.i]
-    aₙₕ = G.A[n.i, h.i]
-    aₜₕ = G.A[t.i, h.i]
+    aₜₙ = A[t.i, n.i]
+    aₙₕ = A[n.i, h.i]
+    aₜₕ = A[t.i, h.i]
     # remove penalty
     s.p -= (v.l > v.q) ? (v.l - v.q) : 0
     # update node
