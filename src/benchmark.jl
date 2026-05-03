@@ -56,8 +56,10 @@ let
                             intramove!          ,
                             intermove!          ,
                             intraswap!          ,
-                            interswap!          
-                        ]                       ,
+                            interswap!          ,
+                            intraopt!           ,
+                            interopt!
+                        ]                      ,
                 σ₁  =   15.0                    ,
                 σ₂  =   10.0                    ,
                 σ₃  =   3.0                     ,
@@ -84,7 +86,7 @@ let
             dfᶠ[i,j+2] = f(s₂)
             dfᵗ[i,j+2] = t₂
             # Save results
-            # sol(s₂, "solutions/$instance-seed$seed-v4")
+            sol(s₂, "solutions/$instance-seed$seed")
             CSV.write("objective_function.csv", dfᶠ)
             CSV.write("run_time.csv", dfᵗ)
         end
