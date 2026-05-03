@@ -1,3 +1,10 @@
+"""
+    visualize(instance::String; backend=gr)
+
+Returns plot visualizing the `instance` using the given `backend` library.
+
+Note: the plot illustrates the customer nodes and the depot node.
+"""
 function visualize(instance::String; backend=gr)
     backend()
     G = build(instance)
@@ -20,6 +27,14 @@ function visualize(instance::String; backend=gr)
     return fig
 end
 
+"""
+    visualize(s::Solution; backend=gr)
+
+Returns plot visualizing the solution `s` using the given `backend` library.
+
+Note: the plot illustrates the customer nodes, depot node, and arcs traversed
+by the vehicle in the solution.
+"""
 function visualize(s::Solution; backend=gr)
     backend()
     fig = plot(legend=:none)
@@ -46,6 +61,37 @@ function visualize(s::Solution; backend=gr)
     X = [N[Z[k]].x for k ∈ 1:K]    # abcissa    
     Y = [N[Z[k]].y for k ∈ 1:K]    # ordinate
     plot!(X, Y, color="#23415a")
+    # figure
+    return fig
+end
+
+"""
+    pltcnv(X::Vector{UInt64}, Z::Vector{Float64}; backend=gr)
+
+Plots convergence using objective function evaluations vector `Z`. 
+Uses given `backend` to plot (defaults to `gr`).
+"""
+function pltcnv(X::Vector{UInt64},Z::Vector{Float64}; backend=gr)
+    backend()
+    fig = plot(legend=:none)
+    xₒ = X[1]
+    zₒ = Z[1]
+    z⃰  = minimum(Z)
+    I  = eachindex(Z)
+    Y₁ = []             # improvements
+    Y₂ = zeros(I)       # convergence
+    for i ∈ I
+        x = X[i]
+        z = Z[i]
+        if !isequal(x, xₒ) && isless(z, zₒ)
+            xₒ = x
+            zₒ = z
+            push!(Y₁, i)
+        end
+        Y₂[i] = (z/z⃰ - 1) * 100
+    end
+    vline!(Y₁, color=:black, linewidth=0.25)
+    plot!(I, Y₂, xlabel="iterations", ylabel="deviation from the best (%)", color=:steelblue)
     # figure
     return fig
 end
