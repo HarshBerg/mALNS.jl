@@ -74,7 +74,7 @@ function initialize(instance::String; dir=joinpath(dirname(@__DIR__), "instances
     L = eachindex(Ψ)
     # initialize
     K = eachindex(N)
-    Δ = zeros(Int, (K,K))       # Δ[i,j]: Savings from merging node N[i] and N[j]   
+    C = zeros(Int, (K,K))       # Δ[i,j]: Savings from merging node N[i] and N[j]   
     d = N[1]
     for k ∈ K
         n = N[k]
@@ -91,11 +91,11 @@ function initialize(instance::String; dir=joinpath(dirname(@__DIR__), "instances
             if isdepot(nⱼ) continue end
             if j ≥ i continue end
             δ = (A[i,1].c + A[1,j].c) - A[i,j].c
-            Δ[i,j] = δ
+            C[i,j] = δ
         end
     end
     # perform feasible greedy merge
-    P = sortperm(vec(Δ), rev=true)
+    P = sortperm(vec(C), rev=true)
     T = Tuple.(CartesianIndices(Δ)[P])
     for (i,j) ∈ T
         if iszero(C[i,j]) break end
