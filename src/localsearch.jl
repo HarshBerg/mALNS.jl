@@ -269,7 +269,6 @@ function intraopt!(rng::AbstractRNG, k::Int, s::Solution)
     # return solution
     return s
 end
-
 """
     interopt!(rng::AbstractRNG, k::Int, s::Solution)
 
