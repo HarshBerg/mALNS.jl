@@ -1,21 +1,41 @@
+"""
+    build(instance::String; dir=joinpath(dirname(@__DIR__), "instances"))
+
+Returns `Graph` for `instance` stored at `dir`.
+"""
 function build(instance::String; dir=joinpath(dirname(@__DIR__), "instances"))
     # read instance file
     df = CSV.read("$dir/$instance.vrp", DataFrame, silencewarnings=true)
     # fetch key indices
-    k₁ = findfirst(contains("DIMENSION"), df[:,1])
-    k₂ = findfirst(contains("CAPACITY"), df[:,1])
-    k₃ = findfirst(contains("NODE_COORD_SECTION"), df[:,1])
-    k₄ = findfirst(contains("DEMAND_SECTION"), df[:,1])
-    # nodes
+    k₁ = findfirst(contains("DIMENSION"), df[:,1])::Int
+    k₂ = findfirst(contains("CAPACITY"), df[:,1])::Int
+    k₃ = findfirst(contains("NODE_COORD_SECTION"), df[:,1])::Int
+    k₄ = findfirst(contains("DEMAND_SECTION"), df[:,1])::Int
+    # fetch nodes
     n = parse(Int, df[k₁,2])
     N = Vector{Node}(undef, n)
     for i ∈ 1:n
-        x = parse(Int, split(df[k₃+i,1])[2])
-        y = parse(Int, split(df[k₃+i,1])[3])
-        q = parse(Int, split(df[k₄+i,1])[2])
-        N[i] = Node(i, x, y, q)
+        v = ""
+        try v = string(split(df[k₃+i,1])[2])
+        catch e
+            v = string(df[k₃+i,2])
+        end
+        x = parse(Int, v)
+        try v = string(split(df[k₃+i,1])[3])
+        catch e
+            v = string(df[k₃+i,3])
+        end
+        y = parse(Int, v)
+        try v = string(split(df[k₄+i,1])[2])
+        catch e
+            v = string(df[k₄+i,2])
+        end
+        r = isone(i) ? 0. : hypot((x - N[1].x), (y - N[1].y))
+        θ = isone(i) ? 0. : atan((y - N[1].y) / (x - N[1].x))
+        q = parse(Int, v)
+        N[i] = Node(i, x, y, r, θ, q)
     end
-    # arcs
+    # create arcs
     A = Matrix{Arc}(undef, n, n)
     for t ∈ 1:n
         xₜ = N[t].x
@@ -23,12 +43,12 @@ function build(instance::String; dir=joinpath(dirname(@__DIR__), "instances"))
         for h ∈ 1:n
             xₕ = N[h].x
             yₕ = N[h].y
-            c  = hypot(xₕ - xₜ, yₕ - yₜ)
+            c  = round(Int, hypot(xₕ - xₜ, yₕ - yₜ))
             a  = Arc(t, h, c)
             A[t,h] = a
         end
     end   
-    # vehicles
+    # fetch vehicles
     q = parse(Int, df[k₂,2])
     V = Vector{Vehicle}(undef, n-1)
     for i ∈ 1:(n-1) V[i] = Vehicle(i, q) end
@@ -38,17 +58,23 @@ function build(instance::String; dir=joinpath(dirname(@__DIR__), "instances"))
 end
 
 """
+    initialize(instance::String; dir=joinpath(dirname(@__DIR__), "instances"))
 
+Returns initial solution for `instance` stored at `dir` using Clarke & Wright Algorithm.
 """
 function initialize(instance::String; dir=joinpath(dirname(@__DIR__), "instances"))
+    # pre-initialize
     G = build(instance; dir=dir)
-    s = Solution(G)
+    s = Solution(G, 0, 0)
     G = s.G
     N = G.N
     A = G.A
     V = G.V
+    Ψ = (intramove!, intermove!, intraswap!, interswap!, intraopt!, interopt!)   
+    L = eachindex(Ψ)
+    # initialize
     K = eachindex(N)
-    # initialize one-to-one routes
+    C = zeros(Int, (K,K))       # Δ[i,j]: Savings from merging node N[i] and N[j]   
     d = N[1]
     for k ∈ K
         n = N[k]
@@ -56,23 +82,24 @@ function initialize(instance::String; dir=joinpath(dirname(@__DIR__), "instances
         v = V[k-1]
         insertnode!(n, d, d, v, s)
     end
-    # calculate savings for each pair of customers
-    Δ = zeros(Float64, (K,K))
+    # iterate through each node pair
     for i ∈ K
-        if isone(i) continue end
+        nᵢ = N[i]
+        if isdepot(nᵢ) continue end
         for j ∈ K
-            if isone(j) continue end
+            nⱼ = N[j]
+            if isdepot(nⱼ) continue end
             if j ≥ i continue end
             δ = (A[i,1].c + A[1,j].c) - A[i,j].c
-            Δ[i,j] = δ
+            C[i,j] = δ
         end
     end
     # perform feasible greedy merge
-    P = sortperm(vec(Δ), rev=true)
-    T = Tuple.(CartesianIndices(Δ)[P])
+    P = sortperm(vec(C), rev=true)
+    T = Tuple.(CartesianIndices(C)[P])
     for (i,j) ∈ T
-        if iszero(Δ[i,j]) break end
-        nᵢ = N[i]   
+        if iszero(C[i,j]) break end
+        nᵢ = N[i]
         nⱼ = N[j]
         # nodal feasibility check
         tᵢ = N[nᵢ.t]
@@ -81,7 +108,7 @@ function initialize(instance::String; dir=joinpath(dirname(@__DIR__), "instances
         hⱼ = N[nⱼ.h]
         if iscustomer(tᵢ) && iscustomer(hᵢ) continue end
         if iscustomer(tⱼ) && iscustomer(hⱼ) continue end
-        # vehicle feasibility check
+        # vehicular feasibility check
         vᵢ = V[nᵢ.v]
         vⱼ = V[nⱼ.v]
         if isequal(vᵢ, vⱼ) continue end
@@ -114,6 +141,13 @@ function initialize(instance::String; dir=joinpath(dirname(@__DIR__), "instances
             n = N[n.h]
         end
     end
+    # add slack vehicles
+    i = lastindex(V)
+    v = V[i]
+    q = v.q
+    for j ∈ 1:3 push!(V, Vehicle(i+j, q)) end
+    # local search
+    for l ∈ L localsearch!(MersenneTwister(length(N)), 200 * length(N), s, Ψ[l]) end
     # return solution
     return s
 end

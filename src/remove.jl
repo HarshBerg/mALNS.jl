@@ -20,8 +20,8 @@ Available methods include,
 Optionally specify a random number generator `rng` as the first argument
 (defaults to `Random.GLOBAL_RNG`).
 """
-remove!(rng::AbstractRNG, k::Int, s::Solution; method::Function)::Solution = method(rng, k, s)
-remove!(k::Int, s::Solution; method::Function) = remove!(Random.GLOBAL_RNG, k, s; method=method)
+remove!(rng::AbstractRNG, k::Int, s::Solution, method::Function)::Solution = method(rng, k, s)
+remove!(k::Int, s::Solution, method::Function) = remove!(Random.GLOBAL_RNG, k, s, method)
 
 """
     randomnode!(rng::AbstractRNG, k::Int, s::Solution)
@@ -40,19 +40,14 @@ function randomnode!(rng::AbstractRNG, k::Int, s::Solution)
     W = zeros(Int, I)
     for i ∈ I
         n = N[i]
-        if isdepot(n) || isopen(n) continue end
+        if isdepot(n) continue end
         W[i] = 1
     end
     # loop: remove exactly k sampled nodes
     c = 0
     while c < k
-        if iszero(sum(W)) break end
         i = sample(rng, I, Weights(W))
         n = N[i]
-        if isopen(n)
-            W[i] = 0
-            continue
-        end
         t = N[n.t]
         h = N[n.h]
         v = V[n.v]
@@ -80,25 +75,25 @@ function relatednode!(rng::AbstractRNG, k::Int, s::Solution)
     I = eachindex(N)
     # randomize a pivot node
     p = N[rand(rng, I)]
+    xₚ, yₚ = p.x, p.y
+    rₚ, θₚ = p.r, p.θ
     # set node weights: relatedness
     W = zeros(Float64, I)
+    φ = rand(rng, Uniform(0., 1.))
     for i ∈ I
         n = N[i]
-        if isdepot(n) || isopen(n) continue end
-        d = A[n.i, p.i].c
-        r = 1 / (d + 1e-3)
+        if isdepot(n) continue end
+        xₙ, yₙ = n.x, n.y
+        rₙ, θₙ = n.r, n.θ
+        d = φ * hypot(xₙ - xₚ, yₙ - yₚ) + (1 - φ) * abs(rₙ * θₙ - rₚ * θₚ) + 1e-3
+        r = 1 / d
         W[i] = r
     end
     # loop: remove exactly k sampled nodes
     c = 0
     while c < k
-        if iszero(sum(W)) break end
         i = sample(rng, I, Weights(W))
         n = N[i]
-        if isopen(n)
-            W[i] = 0
-            continue
-        end
         t = N[n.t]
         h = N[n.h]
         v = V[n.v]
@@ -125,10 +120,10 @@ function worstnode!(rng::AbstractRNG, k::Int, s::Solution)
     # node indices
     I = eachindex(N)
     # set node weights: cost
-    W = zeros(Float64, I)
+    W = zeros(Int, I)
     for i ∈ I
         n = N[i]
-        if isdepot(n) || isopen(n) continue end
+        if isdepot(n) continue end
         t = N[n.t]
         h = N[n.h]
         W[i] = (A[t.i, n.i].c + A[n.i, h.i].c) - A[t.i, h.i].c
@@ -136,13 +131,8 @@ function worstnode!(rng::AbstractRNG, k::Int, s::Solution)
     # loop: remove exactly k sampled nodes
     c = 0
     while c < k
-        if iszero(sum(W)) break end
         i = sample(rng, I, Weights(W))
         n = N[i]
-        if isopen(n)
-            W[i] = 0
-            continue
-        end
         t = N[n.t]
         h = N[n.h]
         v = V[n.v]
@@ -179,7 +169,6 @@ function randomarc!(rng::AbstractRNG, k::Int, s::Solution)
     # loop: until at least k nodes are removed
     c = 0
     while c < k
-        if iszero(sum(W)) break end
         # sample an arc
         i = sample(rng, I, Weights(W))
         a = A[i]
@@ -223,25 +212,25 @@ function relatedarc!(rng::AbstractRNG, k::Int, s::Solution)
     # arc indices
     I = eachindex(A)
     # randomize a pivot arc
-    Wp = [isequal(N[A[i].t].h, N[A[i].h].i) ? 1 : 0 for i ∈ I]
-    if iszero(sum(Wp)) return s end
-    p = A[sample(rng, I, Weights(Wp))]
+    p = A[sample(rng, I, Weights([isequal(N[A[i].t].h, N[A[i].h].i) ? 1 : 0 for i ∈ I]))]
+    xₚ, yₚ = (N[p.t].x + N[p.h].x) / 2, (N[p.t].y + N[p.h].y) / 2
+    rₚ, θₚ = (N[p.t].r + N[p.h].r) / 2, (N[p.t].θ + N[p.h].θ) / 2
     # set arc weights: relatedness
     W = zeros(Float64, I)
+    φ = rand(rng, Uniform(0., 1.))
     for i ∈ I
         a = A[i]
         t = N[a.t]
         h = N[a.h]
-        x = ((N[p.t].x + N[p.h].x) - (N[a.t].x + N[a.h].x)) / 2
-        y = ((N[p.t].y + N[p.h].y) - (N[a.t].y + N[a.h].y)) / 2
-        d = hypot(x, y)
-        r = 1 / (d + 1e-3)
+        xₐ, yₐ = (N[a.t].x + N[a.h].x) / 2, (N[a.t].y + N[a.h].y) / 2
+        rₐ, θₐ = (N[a.t].r + N[a.h].r) / 2, (N[a.t].θ + N[a.h].θ) / 2
+        d = φ * hypot(xₐ - xₚ, yₐ - yₚ) + (1 - φ) * abs(rₐ * θₐ - rₚ * θₚ) + 1e-3
+        r = 1 / d
         W[i] = isequal(t.h, h.i) ? r : 0.
     end
     # loop: until at least k nodes are removed
     c = 0
     while c < k
-        if iszero(sum(W)) break end
         # sample an arc
         i = sample(rng, I, Weights(W))
         a = A[i]
@@ -286,17 +275,16 @@ function worstarc!(rng::AbstractRNG, k::Int, s::Solution)
     C = CartesianIndices(A)
     I = eachindex(A)
     # set arc weights: cost
-    W = zeros(Float64, I)
+    W = zeros(Int, I)
     for i ∈ I
         a = A[i]
         t = N[a.t]
         h = N[a.h] 
-        W[i] = isequal(t.h, h.i) ? a.c : 0.
+        W[i] = isequal(t.h, h.i) ? a.c : 0
     end
     # loop: until at least k nodes are removed
     c = 0
     while c < k
-        if iszero(sum(W)) break end
         # sample an arc
         i = sample(rng, I, Weights(W))
         a = A[i]
@@ -343,19 +331,14 @@ function randomsegment!(rng::AbstractRNG, k::Int, s::Solution)
     W = zeros(Int, I)
     for i ∈ I
         n = N[i]
-        if isdepot(n) || isopen(n) continue end
+        if isdepot(n) continue end
         W[i] = 1
     end
     # loop: until at least k nodes are removed
-    c = 0
+    c = 0 
     while c < k
-        if iszero(sum(W)) break end
         i = sample(rng, I, Weights(W))
         n = N[i]
-        if isopen(n)
-            W[i] = 0
-            continue
-        end
         v = V[n.v]
         # determine segment size and divide it into two halves around node n
         cₒ = sample(rng, 1:v.n)
@@ -413,25 +396,25 @@ function relatedsegment!(rng::AbstractRNG, k::Int, s::Solution)
     I = eachindex(N)
     # randomize a pivot node
     p = N[rand(rng, I)]
+    xₚ, yₚ = p.x, p.y
+    rₚ, θₚ = p.r, p.θ
     # set node weights: relatedness
     W = zeros(Float64, I)
+    φ = rand(rng, Uniform(0., 1.))
     for i ∈ I
         n = N[i]
-        if isdepot(n) || isopen(n) continue end
-        d = A[n.i, p.i].c
-        r = 1 / (d + 1e-3)
+        if isdepot(n) continue end
+        xₙ, yₙ = n.x, n.y
+        rₙ, θₙ = n.r, n.θ
+        d = φ * hypot(xₙ - xₚ, yₙ - yₚ) + (1 - φ) * abs(rₙ * θₙ - rₚ * θₚ) + 1e-3
+        r = 1 / d
         W[i] = r
     end
     # loop: until at least k nodes are removed
-    c = 0
+    c = 0 
     while c < k
-        if iszero(sum(W)) break end
         i = sample(rng, I, Weights(W))
         n = N[i]
-        if isopen(n)
-            W[i] = 0
-            continue
-        end
         v = V[n.v]
         # determine segment size and divide it into two halves around node n
         cₒ = sample(rng, 1:v.n)
@@ -488,24 +471,19 @@ function worstsegment!(rng::AbstractRNG, k::Int, s::Solution)
     # node indices
     I = eachindex(N)
     # set node weights: cost
-    W = zeros(Float64, I)
+    W = zeros(Int, I)
     for i ∈ I
         n = N[i]
-        if isdepot(n) || isopen(n) continue end
+        if isdepot(n) continue end
         t = N[n.t]
         h = N[n.h]
         W[i] = (A[t.i, n.i].c + A[n.i, h.i].c) - A[t.i, h.i].c
     end
     # loop: until at least k nodes are removed
-    c = 0
+    c = 0 
     while c < k
-        if iszero(sum(W)) break end
         i = sample(rng, I, Weights(W))
         n = N[i]
-        if isopen(n)
-            W[i] = 0
-            continue
-        end
         v = V[n.v]
         # determine segment size and divide it into two halves around node n
         cₒ = sample(rng, 1:v.n)
@@ -560,8 +538,8 @@ function randomvehicle!(rng::AbstractRNG, k::Int, s::Solution)
     V = G.V
     # vehicle indices
     I = eachindex(V)
-    # set vehicle weights: uniform (skip empty vehicles)
-    W = [isopt(V[i]) ? 1 : 0 for i ∈ I]
+    # set vehicle weights: uniform
+    W = ones(Int, I)
     # loop: until at least k nodes are removed
     c = 0
     while c < k
@@ -599,14 +577,17 @@ function relatedvehicle!(rng::AbstractRNG, k::Int, s::Solution)
     I = eachindex(V)
     # randomize a pivot vehicle
     p = V[rand(rng, I)]
+    xₚ, yₚ = p.x, p.y
+    rₚ, θₚ = hypot(p.x, p.y), atan(p.y / p.x)
     # set vehicle weights: relatedness
     W = zeros(Float64, I)
+    φ = rand(rng, Uniform(0., 1.))
     for i ∈ I
         v = V[i]
-        x = v.x - p.x
-        y = v.y - p.y
-        d = hypot(x, y)
-        r = 1 / (d + 1e-3)
+        xₙ, yₙ = v.x, v.y
+        rₙ, θₙ = hypot(v.x, v.y), atan(v.y / v.x)
+        d = φ * hypot(xₙ - xₚ, yₙ - yₚ) + (1 - φ) * abs(rₙ * θₙ - rₚ * θₚ) + 1e-3
+        r = 1 / d
         W[i] = r
     end
     # loop: until at least k nodes are removed

@@ -1,51 +1,75 @@
-# move, swap, opt.
-# inter & intra route.
 """
-    localsearch!(rng::AbstractRNG, s::Solution; method::Symbol)
+    localsearch!([rng::AbstractRNG], k::Int, s::Solution, method::Function)
 
-Apply a local search method to the solution `s` using random number generator `rng`. The local search method is specified by `method`.
+Returns solution `s` after performing local seach on the solution using given `method` for `k` iterations.
+
+Available methods include,
+- intra-move    : `intramove!`
+- inter-move    : `intermove!`
+- intra-swap    : `intraswap!`
+- inter-swap    : `interswap!`
+- intra-opt     : `intraopt!`
+- inter-opt     : `interopt!`
+
+Optionally specify a random number generator `rng` as the first argument (defaults to `Random.GLOBAL_RNG`).
 """
-localsearch!(rng::AbstractRNG, k::Int, s::Solution; method::Function)::Solution = method(rng, k, s)
+localsearch!(rng::AbstractRNG, k::Int, s::Solution, method::Function)::Solution = method(rng, k, s)
+localsearch!(k::Int, s::Solution, method::Function) = localsearch!(Random.GLOBAL_RNG, k, s, method)
 
+"""
+    move!(rng::AbstractRNG, k::Int, s::Solution; scope::Symbol)
+
+Returns solution `s` after moving a randomly selected node to its best position 
+in the specified solution `scope`, if the move results in a reduction in objective 
+function value, repeating for `k` iterations.
+"""
 function move!(rng::AbstractRNG, k::Int, s::Solution; scope::Symbol)
+    # pre-initialize
     G = s.G
     N = G.N
     V = G.V
-    I = eachindex(N)
-    Wₙ = [isdepot(n) || isopen(n) ? 0 : 1 for n ∈ N]
-    Wᵥ = [[isequal(n.v, v.i) ? isequal(scope, :intra) : (isequal(scope, :inter) && isopt(v)) for v ∈ V] for n ∈ N]
-    if iszero(sum(Wₙ)) return s end
+    # initialize
+    Wₙ = [isdepot(n) ? 0 : 1 for n ∈ N]
+    Wᵥ = [[isequal(n.v, v.i) ? isequal(scope, :intra) : isequal(scope, :inter) for v ∈ V] for n ∈ N]
+    # iterate
     for _ ∈ 1:k
-        i = sample(rng, I, Weights(Wₙ))
-        n = N[i]
-        if iszero(sum(Wᵥ[n.i])) continue end
+        # compute cost of the current solution
+        z = f(s)
+        # sample a random node
+        n = sample(rng, N, Weights(Wₙ))
+        # remove the node from its current position
         t = N[n.t]
         h = N[n.h]
         v = V[n.v]
         removenode!(n, t, h, v, s)
+        # sample a random vehicle and iterate through all positions in it
         c = 0.
         p = (t.i, h.i, v.i)
-        z = f(s)
         v = sample(rng, V, Weights(Wᵥ[n.i]))
         t = N[1]
         h = N[v.s]
         for _ ∈ 0:v.n
+            # insert the node
             insertnode!(n, t, h, v, s)
+            # evaluate the insertion cost
             z′ = f(s)
-            Δ  = z′ - z
-            if Δ < c c, p = Δ, (t.i, h.i, v.i) end
+            c′ = z′ - z
+            # reset the best insertion position for the node
+            if c′ < c c, p = c′, (t.i, h.i, v.i) end
+            # remove the node
             removenode!(n, t, h, v, s)
             t = h
             h = N[t.h]
         end
-        # re-insert at best position
+        # insert the node to its best positiion
         t = N[p[1]]
         h = N[p[2]]
         v = V[p[3]]
         insertnode!(n, t, h, v, s)
     end
+    # return solution
     return s
-end
+end    
 """
     intramove!(rng::AbstractRNG, k::Int, s::Solution)
 
@@ -64,7 +88,7 @@ function value, repeating for `k` iterations.
 intermove!(rng::AbstractRNG, k::Int, s::Solution) = move!(rng, k, s; scope=:inter)
 
 """
-    swap!(rng::AbstractRNG, k::Int, s::Solution)
+    intraswap!(rng::AbstractRNG, k::Int, s::Solution)
 
 Returns solution `s` after swapping two randomly selected nodes in the specified 
 solution `scope`, if the swap results in a reduction in objective function 

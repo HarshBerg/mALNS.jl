@@ -8,7 +8,7 @@ let
     # Define instances
     instances = ["A-n32-k5"]
     # Define random number generator seeds
-    seeds = [9999] #[1010] [1106] [1509] [1604] [1905] [2104] [2412] [2703] [2710] [2807]
+    seeds = [1010, 1106, 1509, 1604, 1905, 2104, 2412, 2703, 2710, 2807]
     # Dataframes to store solution quality and run time
     dfᶠ = DataFrame([instances, zeros(length(instances)), [zeros(length(instances)) for _ ∈ seeds]...], ["instance", "initial", ["$seed" for seed ∈ seeds]...])
     dfᵗ = DataFrame([instances, zeros(length(instances)), [zeros(length(instances)) for _ ∈ seeds]...], ["instance", "initial", ["$seed" for seed ∈ seeds]...])
@@ -37,7 +37,7 @@ let
             # Define ALNS parameters
             x = max(100, lastindex(s₁.G.N))
             χ = ALNSparameters(
-                j   =   2000                    ,
+                j   =   100                     ,
                 k   =   10                      ,
                 n   =   x                       ,
                 m   =   100x                    ,
@@ -58,20 +58,20 @@ let
                             intraswap!          ,
                             interswap!          ,
                             intraopt!           ,
-                            interopt!           ,       
+                            interopt!           ,
                         ]                       ,
                 σ₁  =   15.0                    ,
                 σ₂  =   10.0                    ,
                 σ₃  =   3.0                     ,
-                μ̲   =   0.05                    ,
-                e̲   =   5                       ,
-                μ̅   =   0.3                     ,
-                e̅   =   30                      ,
-                ω̅   =   1/x                     ,
-                τ̅   =   0.1                     ,
-                ω̲   =   0.1/x                   ,
+                μ̲   =   0.1                     ,
+                e̲   =   4                       ,
+                μ̅   =   0.4                     ,
+                e̅   =   60                      ,
+                ω̅   =   0.05                    ,
+                τ̅   =   0.5                     ,
+                ω̲   =   0.01                    ,
                 τ̲   =   0.01                    ,
-                θ   =   exp(log(0.1 / 1 * log(1 / 0.1) / log(1 / 0.01)) / (1000 * x))                  ,
+                θ   =   0.9985                  ,
                 ρ   =   0.1
             );
             # Run ALNS and fetch best solution
@@ -86,7 +86,7 @@ let
             dfᶠ[i,j+2] = f(s₂)
             dfᵗ[i,j+2] = t₂
             # Save results
-            # sol(s₂, "solutions/$instance-seed$seed-v4")
+            # sol(s₂, "solutions/$instance-seed$seed")
             CSV.write("objective_function.csv", dfᶠ)
             CSV.write("run_time.csv", dfᵗ)
         end

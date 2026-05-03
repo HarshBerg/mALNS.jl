@@ -9,7 +9,7 @@ Optimization parameters for Adaptive Large Neighborhood Search (ALNS).
 - m     :   Number of iterations in a local search
 - Ψᵣ    :   Removal operators - 'Vector' for cALNS, 'Matrix' for mALNS
 - Ψᵢ    :   Insertion operators - 'Vector' for cALNS, 'Matrix' for mALNS
-- Ψₗ     :   Vector of local search operators
+- Ψₗ    :   Vector of local search operators
 - σ₁    :   Score for a new best solution
 - σ₂    :   Score for a new better solution
 - σ₃    :   Score for a new worse but accepted solution
