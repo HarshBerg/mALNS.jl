@@ -1,102 +1,155 @@
 
+"""
+    isdepot(n::Node)
+
+Returns `true` if index of node `n` is one, else returns `false`.
+"""
 @inline isdepot(n::Node) = isone(n.i)
 
-@inline iscustomer(n::Node) = !isone(n.i) 
+"""
+    iscustomer(n::Node)
 
+Returns `false` if index of node `n` is one, else returns `true`.
+"""
+@inline iscustomer(n::Node) = !isdepot(n)
+
+"""
+    isopen(n::Node)
+
+Returns `true` if vehicle index of node `n` is zero, else returns `false`.
+
+Note: open refers to utilization status in the context of a depot node, 
+and to service status for a customer node.
+"""
 @inline isopen(n::Node) = iszero(n.v)
 
-@inline isclose(n::Node) = !iszero(n.v)
+"""
+    isclose(n::Node)
 
+Returns `false` if vehicle index of node `n` is zero, else returns `true`.
+
+Note: close refers to utilization status in the context of a depot node, 
+and to service status for a customer node.
+"""
+@inline isclose(n::Node) = !isopen(n)
+
+"""
+    isequal(n::Node, m::Node)
+
+Returns 'true' if node `n` and `m` have the same index.
+"""
 @inline Base.isequal(n::Node, m::Node) = isequal(n.i, m.i)
 
+"""
+    isopt(v::Vehicle)
+
+Returns `false` is vehicle `v` serves zero customers, else returns `true`.
+
+Operational refers to utilization status.
+"""
 @inline isopt(v::Vehicle) = !iszero(v.n)
 
+"""
+    isequal(u::Vehicle, v::Vehicle)
+
+Returns 'true' if vehicle `u` and `v` have the same index.
+"""
 @inline Base.isequal(u::Vehicle, v::Vehicle) = isequal(u.i, v.i)
 
+"""
+    vectorize(s::Solution)
+
+Returns a vector of customer node indices in the order of their visit in solution `s`.
+
+Note: visits to/from depot node index is included in the vector.
+"""
 function vectorize(s::Solution)
-    Z = Int[]
     G = s.G
-    N = G.N
-    V = G.V
-    for v in V
-        n = N[v.s]
-        push!(Z, 1)  # depot index
-        for _ in 1:v.n 
-            push!(Z, n.i)  # customer node index
-            n = N[n.h]
+    Z = Int[]
+    for v ∈ G.V
+        push!(Z, 1)
+        i = v.s
+        for _ ∈ 1:v.n
+            push!(Z, i)
+            n = G.N[i]
+            i = n.h
         end
-        push!(Z, 1)  # depot index
+        push!(Z, 1)
     end
     return Z
 end
 
-function isfeasible(s::Solution)
+"""
+    isfeasible(s::Solution)
+
+Returns `true` if solution `s` is feasible, else `false`.
+
+Note: infeasibility refers to capacity violations for CVRP.
+"""
+@inline function isfeasible(s::Solution)
     G = s.G
-    N = G.N
-    V = G.V
-    for v in V
-        v.l > v.q && return false
-    end
+    for v ∈ G.V if v.l > v.q return false end end
     return true
 end
 
-@inline f(s::Solution) = s.c + s.p * 10 ^ ceil(log10(max(s.c, 1.0)))
+"""
+    sol(s::Solution, f::String)
 
-@inline function h(s::Solution)
-    G = s.G
-    N = G.N
-    z = zero(UInt)
-    for v in G.V
-        z = hash(1, z)
-        n = N[v.s]
-        for _ in 1:v.n
-            z = hash(n.i, z)
-            n = N[n.h]
+Returns solution file `f.sol`.
+
+Note: visits to/from depot node index is not included in the output.
+"""
+function sol(s::Solution, f::String)
+    open("$f.sol", "w") do io
+        G = s.G
+        k = 0
+        for v ∈ G.V
+            if !isopt(v) continue end
+            k += 1
+            z = Int[]
+            i = v.s
+            for _ ∈ 1:v.n
+                push!(z, i)
+                n = G.N[i]
+                i = n.h
+            end
+            println(io, "Route #$k: ", join(z, ", "))
         end
-        z = hash(1, z)
     end
-    return z
+    return
 end
 
+"""
+    f(s::Solution)
+
+Returns the objective function value for solution `s` along with
+any penalty for constraint violations, scaled appropriately.
+"""
+@inline f(s::Solution) = s.c + s.p * 10 ^ ceil(Int, log10(s.c))
+
+"""
+    h(s::Solution)
+
+Returns hash code for solution `s`.
+"""
+@inline h(s::Solution) = hash(vectorize(s))
+
+"""
+    Base.deepcopy_internal(G::Graph, dict::IdDict)
+
+Creates a deep copy of Graph `G` using the provided `dict` to track already-copied objects.
+
+Note: This method ensures that all mutable fields of the graph, such as the node set `N` and vehicle set `V`, are recursively deep-copied,
+while the adjacency matrix `A` is copied as-is.
+"""
 @inline Base.deepcopy_internal(G::Graph, dict::IdDict) = Graph(Base.deepcopy_internal(G.N, dict), G.A, Base.deepcopy_internal(G.V, dict))
 
+"""
+        Base.deepcopy_internal(s::Solution, dict::IdDict)
+
+Creates a deep copy of solution `s` using the provided `dict` to track already-copied objects.
+
+Note: this method ensures that all mutable fields of the graph, such as the node set `N` and vehicle set `V`, are recursively deep-copied,
+while the adjacency matrix `A` is copied as-is.
+"""
 @inline Base.deepcopy_internal(s::Solution, dict::IdDict) = Solution(Base.deepcopy_internal(s.G, dict), s.c, s.p)
-
-"""
-    relatedness(n₁::Node, n₂::Node)
-
-Returns the relatedness between nodes `n₁` and `n₂`, calculated based on 
-their spatial proximity.
-"""
-@inline function relatedness(n₁::Node, n₂::Node)
-    ϵ = 1e-3
-    d = abs(n₁.x - n₂.x) + abs(n₁.y - n₂.y)
-    r = 1 / (d + ϵ)
-    return r
-end
-
-"""
-    relatedness(a₁::Arc, a₂::Arc)
-
-Returns the relatedness between arcs `a₁` and `a₂`, calculated based on 
-their spatial proximity. 
-"""
-@inline function relatedness(a₁::Arc, a₂::Arc)
-    ϵ = 1e-3
-    d = abs(a₁.x - a₂.x) + abs(a₁.y - a₂.y)
-    r = 1 / (d + ϵ)
-    return r
-end
-
-"""
-    relatedness(v₁::Vehicle, v₂::Vehicle)
-
-Returns the relatedness between vehicles `v₁` and `v₂`, calculated based on 
-their spatial proximity. 
-"""
-@inline function relatedness(v₁::Vehicle, v₂::Vehicle)
-    ϵ = 1e-3
-    d = abs(v₁.x - v₂.x) + abs(v₁.y - v₂.y)
-    r = 1 / (d + ϵ)
-    return r
-end
