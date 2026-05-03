@@ -33,7 +33,7 @@ export  Node, Arc, Vehicle, Graph, Solution,
         intraswap!, interswap!,
         intraopt!, interopt!,
         vectorize, sol, isfeasible, f, h,
-        ALNSparameters, conALNS, modALNS 
+        ALNSparameters, conALNS, modALNS,
         visualize, pltcnv
 
 end
