@@ -96,7 +96,7 @@ function initialize(instance::String; dir=joinpath(dirname(@__DIR__), "instances
     end
     # perform feasible greedy merge
     P = sortperm(vec(C), rev=true)
-    T = Tuple.(CartesianIndices(Δ)[P])
+    T = Tuple.(CartesianIndices(C)[P])
     for (i,j) ∈ T
         if iszero(C[i,j]) break end
         nᵢ = N[i]
