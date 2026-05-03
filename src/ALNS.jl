@@ -1,7 +1,7 @@
 """
-    cALNS([rng::AbstractRNG], χ::ALNSparameters, sₒ::Solution; mute=false))
+    conALNS([rng::AbstractRNG], χ::ALNSparameters, sₒ::Solution; mute=false))
 
-conventional Adaptive Large Neighborhood Search (cALNS)
+conventional Adaptive Large Neighborhood Search (conALNS)
 
 Given ALNS optimization parameters `χ` and an initial solution `sₒ`, 
 ALNS adaptively searches large neighborhoods in the solution domain and
@@ -14,130 +14,131 @@ Optionally specify a random number generator `rng` as the first argument
 """
 function conALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=false)
     # Step 0: Pre-initialize
-    j,k = χ.j, χ.k
-    n,m = χ.n, χ.m
-    ω̅, τ̅ = χ.ω̅, χ.τ̅
-    ω̲ ,τ̲ = χ.ω̲, χ.τ̲
-    μ̲ ,e̲ = χ.μ̲, χ.e̲
-    μ̅ ,e̅ = χ.μ̅, χ.e̅
-    θ, ρ = χ.θ, χ.ρ
+    G = sₒ.G
+    j, k = χ.j, χ.k
+    n, m = χ.n, χ.m
     Ψᵣ, Ψᵢ, Ψₗ = χ.Ψᵣ, χ.Ψᵢ, χ.Ψₗ
     σ₁, σ₂, σ₃ = χ.σ₁, χ.σ₂, χ.σ₃
+    μ̲, e̲ = χ.μ̲, χ.e̲
+    μ̅, e̅ = χ.μ̅, χ.e̅
+    ω̅, τ̅ = χ.ω̅, χ.τ̅
+    ω̲, τ̲ = χ.ω̲, χ.τ̲
+    θ, ρ = χ.θ, χ.ρ
+    e = lastindex(G.N)
     R = eachindex(Ψᵣ)
     I = eachindex(Ψᵢ)
     L = eachindex(Ψₗ)
-    X = fill(zero(UInt), 1 + j * n)
-    Z = Vector{Float64}(undef, 1 + j * n)
-    e = lastindex(sₒ.G.N)
+    X = Vector{UInt}(undef, 1 + j * (n + 1))
+    Z = Vector{Float64}(undef, 1 + j * (n + 1))
+    G = sₒ.G
     # Step 1: Initialize
     s = deepcopy(sₒ)
-    s_best = deepcopy(sₒ)
     x = h(s)
     z = f(s)
     X[1] = x
     Z[1] = z
-    z_best = z
-    t = ω̅ * f(sₒ) / log(1 / τ̅)
-    Cᵣ = zeros(Int, R)
-    Cᵢ = zeros(Int, I)
-    Pᵣ = zeros(Float64, R)
-    Pᵢ = zeros(Float64, I)
-    Wᵣ = ones(Float64, R)
-    Wᵢ = ones(Float64, I)
-    Sᵣ = zeros(Float64, R)
-    Sᵢ = zeros(Float64, I)
-    p = Progress(n * j, desc="Computing...", color=:blue, showspeed=true)
-    # Step 2: Loop over segments
-    for segment ∈ 1:j
+    s⃰ = s
+    z⃰ = z
+    t = ω̅ * z⃰/log(1/τ̅)
+    Cᵣ, Pᵣ, Πᵣ, Wᵣ = zeros(Int, R), zeros(R), zeros(R), ones(R)
+    Cᵢ, Pᵢ, Πᵢ, Wᵢ = zeros(Int, I), zeros(I), zeros(I), ones(I)
+    φ = 0
+    # Step 2: Loop over segments.
+    if !mute p = Progress(n * j, desc="Computing...", color=:blue, showspeed=true) end
+    for u ∈ 1:j
         # Step 2.1: Reset count and score for every removal and insertion operator
-        for r ∈ R Cᵣ[r], Sᵣ[r] = 0, 0 end
-        for i ∈ I Cᵢ[i], Sᵢ[i] = 0, 0 end
+        for r ∈ R Cᵣ[r], Πᵣ[r] = 0, 0. end
+        for i ∈ I Cᵢ[i], Πᵢ[i] = 0, 0. end
         # Step 2.2: Update selection probability for every removal and insertion operator
-        for r ∈ R Pᵣ[r] = Wᵣ[r] / sum(values(Wᵣ)) end
-        for i ∈ I Pᵢ[i] = Wᵢ[i] / sum(values(Wᵢ)) end
+        for r ∈ R Pᵣ[r] = Wᵣ[r]/sum(values(Wᵣ)) end
+        for i ∈ I Pᵢ[i] = Wᵢ[i]/sum(values(Wᵢ)) end
         # Step 2.3: Loop over iterations within the segment
-        for iteration ∈ 1:n
-            # Step 2.3.1: Randomly select a removal and an insertion operator based on operator selection probabilities, and consequently update count for the selected operators
+        for v ∈ 1:n
+            # Step 2.3.1: Randomly select a removal and an insertion operator based on operator selection probabilities, and consequently update count for the selected operators.
             r = sample(rng, R, Weights(Pᵣ))
             i = sample(rng, I, Weights(Pᵢ))
             Cᵣ[r] += 1
             Cᵢ[i] += 1
-            # Step 2.3.2: Using the selected removal and insertion operators destroy and repair the current solution to develop a new solution
-            q = Int(floor((1 - rand(rng) * min(e̲, μ̲  * e) + rand(rng) * min(e̅, μ̅  * e))))
-            s′ = deepcopy(s)
-            remove!(rng, q, s′; method=Ψᵣ[r])
-            insert!(rng, s′; method=Ψᵢ[i])
+            # Step 2.3.2: Using the selected removal and insertion operators destroy and repair the current solution to develop a new solution.
+            η = rand(rng)
+            q = Int(floor(((1 - η) * min(e̲, μ̲ * e) + η * min(e̅, μ̅ * e))))
+            s′= deepcopy(s)
+            remove!(rng, q, s′, Ψᵣ[r])
+            insert!(rng, s′, Ψᵢ[i])
             x′ = h(s′)
             z′ = f(s′)
-            # Step 2.3.3: If this new solution is better than the best solution, then set the best solution and the current solution to the new solution, and accordingly update scores of the selected removal and insertion operators by σ₁
-            if z′ < z_best
-                s_best = s′
+            # Step 2.3.3: If this new solution is better than the best solution, then set the best solution and the current solution to the new solution, and accordingly update scores of the selected removal and insertion operators by σ₁.
+            if z′ < z⃰
                 s = s′
-                x = x′
+                s⃰ = s′
                 z = z′
-                z_best = z′
-                Sᵣ[r] += σ₁
-                Sᵢ[i] += σ₁
-            # Step 2.3.4: Else if this new solution is only better than the current solution, then set the current solution to the new solution and accordingly update scores of the selected removal and insertion operators by σ₂
+                z⃰ = z′
+                Πᵣ[r] += σ₁
+                Πᵢ[i] += σ₁
+                φ = 1
+            # Step 2.3.4: Else if this new solution is only better than the current solution, then set the current solution to the new solution and accordingly update scores of the selected removal and insertion operators by σ₂.
             elseif z′ < z
                 s = s′
-                x = x′
                 z = z′
                 if x′ ∉ X
-                    Sᵣ[r] += σ₂
-                    Sᵢ[i] += σ₂
+                    Πᵣ[r] += σ₂
+                    Πᵢ[i] += σ₂
                 end
-            # Step 2.3.5: Else accept the new solution with simulated annealing acceptance criterion. Further, if the new solution is also newly found then update operator scores by σ₃
-            else 
-                if rand(rng) < exp((z - z′) / t)
+                φ = φ
+            # Step 2.3.5: Else accept the new solution with simulated annealing acceptance criterion. Further, if the new solution is also newly found then update operator scores by σ₃.
+            else
+                η = rand(rng)
+                if η < exp(-(z′ - z)/t)
                     s = s′
-                    x = x′
                     z = z′
                     if x′ ∉ X
-                        Sᵣ[r] += σ₃
-                        Sᵢ[i] += σ₃
+                        Πᵣ[r] += σ₃
+                        Πᵢ[i] += σ₃
                     end
+                    φ = φ
                 end
             end
-            # Step 2.3.6: Update temperature according to cooling schedule
-            t = max(ω̲  * f(s_best) / log(1 / τ̲), t * θ) 
-            # Step 2.3.7: Store best solution from each iteration
-            X[1 + (segment - 1) * n + iteration] = x
-            Z[1 + (segment - 1) * n + iteration] = z
-            next!(p)
+            x = x′
+            X[1 + (u - 1) * (n + 1) + v] = x
+            Z[1 + (u - 1) * (n + 1) + v] = z
+            t = max(t * θ, ω̲ * z⃰/log(1/τ̲))
+            if !mute next!(p) end
         end
-        # Step 2.4: Update weights for every removal and insertion operator (module)
-        for r ∈ R if !iszero(Cᵣ[r]) Wᵣ[r] = (1 - ρ) * Wᵣ[r] + ρ * Sᵣ[r] / Cᵣ[r] end end
-        for i ∈ I if !iszero(Cᵢ[i]) Wᵢ[i] = (1 - ρ) * Wᵢ[i] + ρ * Sᵢ[i] / Cᵢ[i] end end
-        # Step 2.5: Reset current solution
-        s = sₒ
-        # Step 2.6: Perform local search
+        # Step 2.4: Update weights for every removal and insertion operator.
+        for r ∈ R if !iszero(Cᵣ[r]) Wᵣ[r] = ρ * Πᵣ[r] / Cᵣ[r] + (1 - ρ) * Wᵣ[r] end end
+        for i ∈ I if !iszero(Cᵢ[i]) Wᵢ[i] = ρ * Πᵢ[i] / Cᵢ[i] + (1 - ρ) * Wᵢ[i] end end
+        # Step 2.5: Reset current solution.
+        if iszero(u % k)
+            s = iszero(φ) ? deepcopy(s⃰) : s
+            z = iszero(φ) ? z⃰ : z
+            φ = 0
+        end
+        # Step 2.6: Perform local search.
         s′ = deepcopy(s)
-        #for l ∈ L localsearch!(rng, m, s′; method = Ψₗ[l]) end
+        for l ∈ L localsearch!(rng, m, s′, Ψₗ[l]) end
         x′ = h(s′)
         z′ = f(s′)
-        if z′ < z_best
-            s_best = s′
+        if z′ < z⃰
             s = s′
-            x = x′
+            s⃰ = s′
             z = z′
-            z_best = z′
+            z⃰ = z′
         elseif z′ < z
             s = s′
-            x = x′
             z = z′
         end
-        x = x'
-        X[1 + segment * n] = x
-        Z[1 + segment * n] = z
+        x = x′
+        X[1 + u * (n + 1)] = x
+        Z[1 + u * (n + 1)] = z
     end
     # Step 3: Display the convergence plot and return the best solution
-    return s_best
+    if !mute display(pltcnv(X,Z)) end
+    return s⃰
 end
-
+conALNS(χ::ALNSparameters, s::Solution; mute=false) = conALNS(Random.GLOBAL_RNG, χ, s; mute=mute)
 
 """
-    mALNS([rng::AbstractRNG], χ::ALNSparameters, sₒ::Solution; mute=false))
+    modALNS([rng::AbstractRNG], χ::ALNSparameters, sₒ::Solution; mute=false))
 
 modular Adaptive Large Neighborhood Search (mALNS)
 
@@ -152,165 +153,136 @@ Optionally specify a random number generator `rng` as the first argument
 """
 function modALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=false)
     # Step 0: Pre-initialize
-    j,k = χ.j, χ.k
-    n,m = χ.n, χ.m
-    ω̅, τ̅ = χ.ω̅, χ.τ̅
-    ω̲ ,τ̲ = χ.ω̲, χ.τ̲
-    μ̲ ,e̲ = χ.μ̲, χ.e̲
-    μ̅ ,e̅ = χ.μ̅, χ.e̅
-    θ, ρ = χ.θ, χ.ρ
+    G = sₒ.G
+    j, k = χ.j, χ.k
+    n, m = χ.n, χ.m
     Ψᵣ, Ψᵢ, Ψₗ = χ.Ψᵣ, χ.Ψᵢ, χ.Ψₗ
     σ₁, σ₂, σ₃ = χ.σ₁, χ.σ₂, χ.σ₃
-    Rᵣ,Rᵪ = size(Ψᵣ)
-    Iᵣ,Iᵪ = size(Ψᵢ)  
+    μ̲, e̲ = χ.μ̲, χ.e̲
+    μ̅, e̅ = χ.μ̅, χ.e̅
+    ω̅, τ̅ = χ.ω̅, χ.τ̅
+    ω̲, τ̲ = χ.ω̲, χ.τ̲
+    θ, ρ = χ.θ, χ.ρ
+    e = lastindex(G.N)
+    rᵣ, cᵣ = size(Ψᵣ)
+    rᵢ, cᵢ = size(Ψᵢ)
     L = eachindex(Ψₗ)
-    X = fill(zero(UInt), 1 + j * n)
-    Z = Vector{Float64}(undef, 1 + j * n)
-    e = lastindex(sₒ.G.N)
+    X = Vector{UInt}(undef, 1 + j * (n + 1))
+    Z = Vector{Float64}(undef, 1 + j * (n + 1))
+    G = sₒ.G
     # Step 1: Initialize
     s = deepcopy(sₒ)
-    s_best = deepcopy(sₒ)
     x = h(s)
     z = f(s)
     X[1] = x
     Z[1] = z
-    z_best = z
-    t = ω̅ * f(sₒ) / log(1 / τ̅)
-    Cᵣ = zeros(Int, Rᵣ, Rᵪ)
-    Cᵢ = zeros(Int, Iᵣ, Iᵪ)
-    Pᵣ = zeros(Float64, Rᵣ, Rᵪ)
-    Pᵢ = zeros(Float64, Iᵣ, Iᵪ)
-    Wᵣ = ones(Float64, Rᵣ, Rᵪ)
-    Wᵢ = ones(Float64, Iᵣ, Iᵪ)
-    Sᵣ = zeros(Float64, Rᵣ, Rᵪ)
-    Sᵢ = zeros(Float64, Iᵣ, Iᵪ)
-    p = Progress(n * j, desc="Computing...", color=:blue, showspeed=true)
-    # Step 2: Loop over segments
-    for segment ∈ 1:j
+    s⃰ = s
+    z⃰ = z
+    t = ω̅ * z⃰/log(1/τ̅)
+    Cᵣ, Pᵣ, Πᵣ, Wᵣ = zeros(Int, rᵣ, cᵣ), zeros(rᵣ, cᵣ), zeros(rᵣ, cᵣ), ones(rᵣ, cᵣ)
+    Cᵢ, Pᵢ, Πᵢ, Wᵢ = zeros(Int, rᵢ, cᵢ), zeros(rᵢ, cᵢ), zeros(rᵢ, cᵢ), ones(rᵢ, cᵢ)
+    φ = 0
+    # Step 2: Loop over segments.
+    if !mute p = Progress(n * j, desc="Computing...", color=:blue, showspeed=true) end
+    for u ∈ 1:j
         # Step 2.1: Reset count and score for every removal and insertion operator
-        Cᵣ .= 0; Sᵣ .= 0
-        Cᵢ .= 0; Sᵢ .= 0
+        Cᵣ .= 0; Πᵣ .= 0
+        Cᵢ .= 0; Πᵢ .= 0
         # Step 2.2: Update selection probability for every removal and insertion operator
-        for row ∈ 1:Rᵣ
-            row_sum = sum(Wᵣ[row, :])
-            for col ∈ 1:Rᵪ
-                Pᵣ[row, col] = Wᵣ[row, col] / row_sum
-            end
-        end
-        for row ∈ 1:Iᵣ
-            row_sum = sum(Wᵢ[row, :])
-            for col ∈ 1:Iᵪ
-                Pᵢ[row, col] = Wᵢ[row, col] / row_sum
-            end
-        end
-
+        for r ∈ 1:rᵣ for c ∈ 1:cᵣ Pᵣ[r,c] = Wᵣ[r,c] / sum(Wᵣ[r,:]) end end
+        for r ∈ 1:rᵢ for c ∈ 1:cᵢ Pᵢ[r,c] = Wᵢ[r,c] / sum(Wᵢ[r,:]) end end
         # Step 2.3: Loop over iterations within the segment
-        for iteration ∈ 1:n
+        for v ∈ 1:n
             # Step 2.3.1: Randomly select a removal and an insertion operator based on operator selection probabilities, and consequently update count for the selected operators
-            r = [sample(rng, 1:Rᵪ, Weights(Pᵣ[row, :])) for row ∈ 1:Rᵣ]
-            i = [sample(rng, 1:Iᵪ, Weights(Pᵢ[row, :])) for row ∈ 1:Iᵣ]
-            for row ∈ 1:Rᵣ
-                Cᵣ[row, r[row]] += 1
-            end
-            for row ∈ 1:Iᵣ
-                Cᵢ[row, i[row]] += 1
-            end
+            Rₒ = sample(rng, CartesianIndices(Ψᵣ), Weights(vec(Pᵣ)))
+            Iₒ = sample(rng, CartesianIndices(Ψᵢ), Weights(vec(Pᵢ)))
+            Cᵣ[Rₒ] += 1
+            Cᵢ[Iₒ] += 1
             # Step 2.3.2: Using the selected removal and insertion operators destroy and repair the current solution to develop a new solution
             q = Int(floor((1 - rand(rng) * min(e̲, μ̲  * e) + rand(rng) * min(e̅, μ̅  * e))))
             s′ = deepcopy(s)
-            for row ∈ 1:Rᵣ
-                s′ = Ψᵣ[row, r[row]](rng, q, s′)
-            end
-            for row ∈ 1:Iᵣ
-                s′ = Ψᵢ[row, i[row]](rng, s′)
-            end
+            remove!(rng, q, s′, Ψᵣ[Rₒ])
+            insert!(rng, s′, Ψᵢ[Iₒ])
             x′ = h(s′)
             z′ = f(s′)
-            # Step 2.3.3: If this new solution is better than the best solution, then set the best solution and the current solution to the new solution, and accordingly update scores of the selected removal and insertion operators by σ₁
-            if z′ < z_best
-                s_best = s′
+            # Step 2.3.3: If this new solution is better than the best solution, then set the best solution and the current solution to the new solution, and accordingly update scores of the selected removal and insertion operators by σ₁.
+            if z′ < z⃰
                 s = s′
-                x = x′
+                s⃰ = s′
                 z = z′
-                z_best = z′
-                for row ∈ 1:Rᵣ
-                    Sᵣ[row, r[row]] += σ₁
-                end
-                for row ∈ 1:Iᵣ
-                    Sᵢ[row, i[row]] += σ₁
-                end
-            # Step 2.3.4: Else if this new solution is only better than the current solution, then set the current solution to the new solution and accordingly update scores of the selected removal and insertion operators by σ₂
+                z⃰ = z′
+                rₒ, cₒ = Tuple(Rₒ)
+                Πᵣ[rₒ, :] .+= σ₁
+                Πᵣ[:, cₒ] .+= σ₁
+                rₒ, cₒ = Tuple(Iₒ)
+                Πᵢ[rₒ, :] .+= σ₁
+                Πᵢ[:, cₒ] .+= σ₁
+                φ = 1
+            # Step 2.3.4: Else if this new solution is only better than the current solution, then set the current solution to the new solution and accordingly update scores of the selected removal and insertion operators by σ₂.
             elseif z′ < z
                 s = s′
-                x = x′
                 z = z′
                 if x′ ∉ X
-                    for row ∈ 1:Rᵣ
-                        Sᵣ[row, r[row]] += σ₂
-                    end
-                    for row ∈ 1:Iᵣ
-                        Sᵢ[row, i[row]] += σ₂
-                    end
+                    rₒ, cₒ = Tuple(Rₒ)
+                    Πᵣ[rₒ, :] .+= σ₂
+                    Πᵣ[:, cₒ] .+= σ₂
+                    rₒ, cₒ = Tuple(Iₒ)
+                    Πᵢ[rₒ, :] .+= σ₂
+                    Πᵢ[:, cₒ] .+= σ₂
                 end
-            # Step 2.3.5: Else accept the new solution with simulated annealing acceptance criterion. Further, if the new solution is also newly found then update operator scores by σ₃
-            else 
-                if rand(rng) < exp((z - z′) / t)
+                φ = φ
+            # Step 2.3.5: Else accept the new solution with simulated annealing acceptance criterion. Further, if the new solution is also newly found then update operator scores by σ₃.
+            else
+                η = rand(rng)
+                if η < exp(-(z′ - z)/t)
                     s = s′
-                    x = x′
                     z = z′
                     if x′ ∉ X
-                        for row ∈ 1:Rᵣ
-                            Sᵣ[row, r[row]] += σ₃
-                        end
-                        for row ∈ 1:Iᵣ
-                            Sᵢ[row, i[row]] += σ₃
-                        end
+                        rₒ, cₒ = Tuple(Rₒ)
+                        Πᵣ[rₒ, :] .+= σ₃
+                        Πᵣ[:, cₒ] .+= σ₃
+                        rₒ, cₒ = Tuple(Iₒ)
+                        Πᵢ[rₒ, :] .+= σ₃
+                        Πᵢ[:, cₒ] .+= σ₃
                     end
+                    φ = φ
                 end
             end
-            # Step 2.3.6: Update temperature according to cooling schedule
-            t = max(ω̲  * f(s_best) / log(1 / τ̲), t * θ) 
-            # Step 2.3.7: Store best solution from each iteration
-            X[1 + (segment - 1) * n + iteration] = x
-            Z[1 + (segment - 1) * n + iteration] = z
-            next!(p)
+            x = x′
+            t = max(t * θ, ω̲ * z⃰/log(1/τ̲))
+            X[1 + (u - 1) * (n + 1) + v] = x
+            Z[1 + (u - 1) * (n + 1) + v] = z
+            if !mute next!(p) end
         end
         # Step 2.4: Update weights for every removal and insertion operator (module)
-        for row ∈ 1:Rᵣ
-            for col ∈ 1:Rᵪ
-                if !iszero(Cᵣ[row, col])
-                    Wᵣ[row, col] = (1 - ρ) * Wᵣ[row, col] + ρ * Sᵣ[row, col] / Cᵣ[row, col]
-                end
-            end
+        for r ∈ 1:rᵣ for c ∈ 1:cᵣ if !iszero(Cᵣ[r, c]) Wᵣ[r, c] = (1 - ρ) * Wᵣ[r, c] + ρ * Πᵣ[r, c] / Cᵣ[r, c] end end end
+        for r ∈ 1:rᵢ for c ∈ 1:cᵢ if !iszero(Cᵢ[r, c]) Wᵢ[r, c] = (1 - ρ) * Wᵢ[r, c] + ρ * Πᵢ[r, c] / Cᵢ[r, c] end end end
+        # Step 2.5: Reset current solution.
+        if iszero(u % k)
+            s = iszero(φ) ? deepcopy(s⃰) : s
+            z = iszero(φ) ? z⃰ : z
+            φ = 0
         end
-        for row ∈ 1:Iᵣ
-            for col ∈ 1:Iᵪ
-                if !iszero(Cᵢ[row, col])
-                    Wᵢ[row, col] = (1 - ρ) * Wᵢ[row, col] + ρ * Sᵢ[row, col] / Cᵢ[row, col]
-                end
-            end
-        end
-        # Step 2.5: Reset current solution
-        s = sₒ
-        # Step 2.6: Perform local search
+        # Step 2.6: Perform local search.
         s′ = deepcopy(s)
-        for l ∈ L
-            s′ = Ψₗ[l](rng, m, s′)
-        end
+        for l ∈ L localsearch!(rng, m, s′, Ψₗ[l]) end
         x′ = h(s′)
         z′ = f(s′)
-        if z′ < z_best
-            s_best = s′
+        if z′ < z⃰
             s = s′
-            x = x′
+            s⃰ = s′
             z = z′
-            z_best = z′
+            z⃰ = z′
         elseif z′ < z
             s = s′
-            x = x′
             z = z′
         end
+        x = x′
+        X[1 + u * (n + 1)] = x
+        Z[1 + u * (n + 1)] = z
     end
     # Step 3: Display the convergence plot and return the best solution
-    return s_best
+    if !mute display(pltcnv(X,Z)) end
+    return s⃰
 end
+modALNS(χ::ALNSparameters, s::Solution; mute=false) = modALNS(Random.GLOBAL_RNG, χ, s; mute=mute)
