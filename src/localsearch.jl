@@ -63,6 +63,63 @@ function value, repeating for `k` iterations.
 """
 intermove!(rng::AbstractRNG, k::Int, s::Solution) = move!(rng, k, s; scope=:inter)
 
+
+# TODO: Added swap from my repository; checnk and verify what is the difference and remove your version.
+function swap!(rng::AbstractRNG, k::Int, s::Solution; scope::Symbol)
+    G = s.G
+    N = G.N
+    I = eachindex(N)
+    V = G.V
+    Wₙ = [isdepot(n) || isopen(n) ? 0 : 1 for n ∈ N]
+    if iszero(sum(Wₙ)) return s end
+    for _ in 1:k
+        i = sample(rng, I, Weights(Wₙ))
+        n = N[i]
+        Wₘ = [(isdepot(m) || isopen(m)) || isequal(n, m) ? 0 : isequal(scope, :intra) ? (n.v == m.v ? 1 : 0) : isequal(scope, :inter) ? (n.v != m.v ? 1 : 0) : 0 for m ∈ N]
+        if iszero(sum(Wₘ)) continue end
+        tₙ = N[n.t]
+        hₙ = N[n.h]
+        vₙ = V[n.v]
+        z = f(s)
+        i = sample(rng, I, Weights(Wₘ))
+        m = N[i]
+        tₘ = N[m.t]
+        hₘ = N[m.h]
+        vₘ = V[m.v]
+        if isequal(n, m.t)
+            removenode!(n, tₙ, hₙ, vₙ, s)
+            insertnode!(n, m, hₘ, vₘ, s)
+        elseif isequal(m, n.t)
+            removenode!(n, tₙ, hₙ, vₙ, s)
+            insertnode!(n, tₘ, m, vₘ, s)
+        else 
+            removenode!(n, tₙ, hₙ, vₙ, s)
+            removenode!(m, tₘ, hₘ, vₘ, s)
+            insertnode!(n, tₘ, hₘ, vₘ, s)
+            insertnode!(m, tₙ, hₙ, vₙ, s)
+        end
+
+        if f(s) < z continue end
+
+        if isequal(n, m)
+            removenode!(n, m, hₘ, vₘ, s)
+            insertnode!(n, tₙ, m, vₙ, s)
+        elseif isequal(m, n)
+            removenode!(n, tₘ, m, vₘ, s)
+            insertnode!(n, m, hₙ, vₙ, s)
+        else 
+            removenode!(n, tₙ, hₙ, vₙ, s)
+            removenode!(m, tₘ, hₘ, vₘ, s)
+            insertnode!(n, tₘ, hₘ, vₘ, s)
+            insertnode!(m, tₙ, hₙ, vₙ, s)
+        end
+    end
+    return s
+end
+interswap!(rng::AbstractRNG, k::Int, s::Solution) = swap!(rng, k, s; scope=:inter)
+intraswap!(rng::AbstractRNG, k::Int, s::Solution) = swap!(rng, k, s; scope=:intra)
+
+
 """
     swap!(rng::AbstractRNG, k::Int, s::Solution)
 
@@ -245,7 +302,6 @@ function intraopt!(rng::AbstractRNG, k::Int, s::Solution)
     # return solution
     return s
 end
-
 """
     interopt!(rng::AbstractRNG, k::Int, s::Solution)
 
