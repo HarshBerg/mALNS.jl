@@ -145,7 +145,7 @@ function initialize(instance::String; dir=joinpath(dirname(@__DIR__), "instances
     i = lastindex(V)
     v = V[i]
     q = v.q
-    for j ∈ 1:3 push!(V, Vehicle(i+j, q)) end
+    # for j ∈ 1:3 push!(V, Vehicle(i+j, q)) end
     # local search
     for l ∈ L localsearch!(MersenneTwister(length(N)), 200 * length(N), s, Ψ[l]) end
     # return solution
