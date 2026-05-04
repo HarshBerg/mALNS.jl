@@ -7,8 +7,8 @@ Optimization parameters for Adaptive Large Neighborhood Search (ALNS).
 - k     :   Number of segments to reset ALNS
 - n     :   Number of iterations in an ALNS segment
 - m     :   Number of iterations in a local search
-- Ψᵣ    :   Removal operators - 'Vector' for cALNS, 'Matrix' for mALNS
-- Ψᵢ    :   Insertion operators - 'Vector' for cALNS, 'Matrix' for mALNS
+- Ψᵣ    :   Removal operators
+- Ψᵢ    :   Insertion operators
 - Ψₗ    :   Vector of local search operators
 - σ₁    :   Score for a new best solution
 - σ₂    :   Score for a new better solution
@@ -24,7 +24,7 @@ Optimization parameters for Adaptive Large Neighborhood Search (ALNS).
 - θ     :   Cooling rate
 - ρ     :   Reaction factor
 """
-Base.@kwdef struct ALNSparameters{R<:AbstractVecOrMat, I<:AbstractVecOrMat, L<:AbstractVecOrMat}
+Base.@kwdef struct ALNSparameters{R<:Matrix{Function}, I<:Matrix{Function}, L<:Vector{Function}}
     j::Int
     k::Int
     n::Int
