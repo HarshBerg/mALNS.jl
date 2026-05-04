@@ -6,9 +6,9 @@ using DataFrames
 
 let
     # Define instances
-    instances = ["A-n32-k5"]
+    instances = ["X-n209-k16"]
     # Define random number generator seeds
-    seeds = [1010, 1106, 1509, 1604, 1905, 2104, 2412, 2703, 2710, 2807]
+    seeds = [1234, 1729, 2310, 3103, 9999, 4200, 5544, 7788, 8080, 6000]
     # Dataframes to store solution quality and run time
     dfᶠ = DataFrame([instances, zeros(length(instances)), [zeros(length(instances)) for _ ∈ seeds]...], ["instance", "initial", ["$seed" for seed ∈ seeds]...])
     dfᵗ = DataFrame([instances, zeros(length(instances)), [zeros(length(instances)) for _ ∈ seeds]...], ["instance", "initial", ["$seed" for seed ∈ seeds]...])
@@ -37,20 +37,21 @@ let
             # Define ALNS parameters
             x = max(100, lastindex(s₁.G.N))
             χ = ALNSparameters(
-                j   =   100                     ,
+                j   =   100                    ,
                 k   =   10                      ,
                 n   =   x                       ,
                 m   =   100x                    ,
                 Ψᵣ  =   [
-                            randomnode!         randomarc!          randomsegment!      ;
-                            relatednode!        relatedarc!         relatedsegment!     ;
+                            randomnode!         randomarc!          randomsegment! ;
+                            relatednode!        relatedarc!         relatedsegment!;
                             worstnode!          worstarc!           worstsegment!
                         ]                       ,
                 Ψᵢ  =   [
                             bestprecise!        bestperturb!        ;
                             greedyprecise!      greedyperturb!      ;
                             regret2precise!     regret2perturb!     ;
-                            regret3precise!     regret3perturb!
+                            regret3precise!     regret3perturb!     ;
+                            regret5precise!     regret5perturb!     
                         ]                       ,
                 Ψₗ  =   [
                             intramove!          ,
@@ -63,19 +64,19 @@ let
                 σ₁  =   15.0                    ,
                 σ₂  =   10.0                    ,
                 σ₃  =   3.0                     ,
-                μ̲   =   0.1                     ,
-                e̲   =   4                       ,
-                μ̅   =   0.4                     ,
-                e̅   =   60                      ,
-                ω̅   =   0.05                    ,
-                τ̅   =   0.5                     ,
-                ω̲   =   0.01                    ,
+                μ̲   =   0.05                    ,
+                e̲   =   5                       ,
+                μ̅   =   0.3                     ,
+                e̅   =   30                      ,
+                ω̅   =   1/x                     ,
+                τ̅   =   0.1                     ,
+                ω̲   =   0.1/x                   ,
                 τ̲   =   0.01                    ,
-                θ   =   0.9985                  ,
+                θ   =   exp(log(0.1 / 1 * log(1 / 0.1) / log(1 / 0.01)) / (100 * x))                  ,
                 ρ   =   0.1
             );
             # Run ALNS and fetch best solution
-            t₂ = @elapsed s₂ = modALNS(rng, χ, s₁);
+            t₂ = @elapsed s₂ = conALNS(rng, χ, s₁);
             # Visualize best solution
             display(visualize(s₂))
             # Fetch solution characteristics
