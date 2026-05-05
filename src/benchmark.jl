@@ -37,7 +37,7 @@ let
             # Define ALNS parameters
             x = max(100, lastindex(s₁.G.N))
             χ = ALNSparameters(
-                j   =   100                    ,
+                j   =   x                       ,
                 k   =   10                      ,
                 n   =   x                       ,
                 m   =   100x                    ,
@@ -72,11 +72,11 @@ let
                 τ̅   =   0.1                     ,
                 ω̲   =   0.1/x                   ,
                 τ̲   =   0.01                    ,
-                θ   =   exp(log(0.1 / 1 * log(1 / 0.1) / log(1 / 0.01)) / (100 * x))                  ,
+                θ   =   exp(log(0.1 / 1 * log(1 / 0.1) / log(1 / 0.01)) / (x * x))                  ,
                 ρ   =   0.1
             );
             # Run ALNS and fetch best solution
-            t₂ = @elapsed s₂ = conALNS(rng, χ, s₁);
+            t₂ = @elapsed s₂ = modALNS(rng, χ, s₁);
             # Visualize best solution
             display(visualize(s₂))
             # Fetch solution characteristics
