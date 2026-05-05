@@ -131,6 +131,8 @@ function conALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=fals
         X[1 + u * (n + 1)] = x
         Z[1 + u * (n + 1)] = z
     end
+    println("Pr:", Pᵣ)
+    println("Pi:", Pᵢ)
     # Step 3: Display the convergence plot and return the best solution
     if !mute display(pltcnv(X,Z)) end
     return s⃰
@@ -179,8 +181,8 @@ function modALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=fals
     s⃰ = s
     z⃰ = z
     t = ω̅ * z⃰/log(1/τ̅)
-    Cᵣ, Pᵣ, Πᵣ, Wᵣ = zeros(Int, rᵣ, cᵣ), zeros(rᵣ, cᵣ), zeros(rᵣ, cᵣ), ones(rᵣ, cᵣ)
-    Cᵢ, Pᵢ, Πᵢ, Wᵢ = zeros(Int, rᵢ, cᵢ), zeros(rᵢ, cᵢ), zeros(rᵢ, cᵢ), ones(rᵢ, cᵢ)
+    Cᵣ, Pᵣ, Πᵣ, Wᵣ = zeros(Float64, rᵣ, cᵣ), zeros(rᵣ, cᵣ), zeros(rᵣ, cᵣ), ones(rᵣ, cᵣ)
+    Cᵢ, Pᵢ, Πᵢ, Wᵢ = zeros(Float64, rᵢ, cᵢ), zeros(rᵢ, cᵢ), zeros(rᵢ, cᵢ), ones(rᵢ, cᵢ)
     φ = 0
     # Step 2: Loop over segments.
     if !mute p = Progress(n * j, desc="Computing...", color=:blue, showspeed=true) end
@@ -196,8 +198,6 @@ function modALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=fals
             # Step 2.3.1: Randomly select a removal and an insertion operator based on operator selection probabilities, and consequently update count for the selected operators
             Rₒ = sample(rng, CartesianIndices(Ψᵣ), Weights(vec(Pᵣ)))
             Iₒ = sample(rng, CartesianIndices(Ψᵢ), Weights(vec(Pᵢ)))
-            Cᵣ[Rₒ] += 1
-            Cᵢ[Iₒ] += 1
             # Step 2.3.2: Using the selected removal and insertion operators destroy and repair the current solution to develop a new solution
             η = rand(rng)
             q = Int(floor((1 - η) * min(e̲, μ̲  * e) + η * min(e̅, μ̅  * e)))
@@ -213,11 +213,17 @@ function modALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=fals
                 z = z′
                 z⃰ = z′
                 rₒ, cₒ = Tuple(Rₒ)
-                Πᵣ[rₒ, :] .+= σ₁
-                Πᵣ[:, cₒ] .+= σ₁
+                Πᵣ[rₒ, :] .+= (σ₁ / 2) / cᵣ
+                Πᵣ[:, cₒ] .+= (σ₁ / 2) / rᵣ
+                Πᵣ[rₒ, cₒ] += σ₁
+                Cᵣ[rₒ, :] .+= 0.5
+                Cᵣ[:, cₒ] .+= 0.5
                 rₒ, cₒ = Tuple(Iₒ)
-                Πᵢ[rₒ, :] .+= σ₁
-                Πᵢ[:, cₒ] .+= σ₁
+                Πᵢ[rₒ, :] .+= (σ₁ / 2) / cᵢ
+                Πᵢ[:, cₒ] .+= (σ₁ / 2) / rᵢ
+                Πᵢ[rₒ, cₒ] += σ₁
+                Cᵢ[rₒ, :] .+= 0.5
+                Cᵢ[:, cₒ] .+= 0.5
                 φ = 1
             # Step 2.3.4: Else if this new solution is only better than the current solution, then set the current solution to the new solution and accordingly update scores of the selected removal and insertion operators by σ₂.
             elseif z′ < z
@@ -225,11 +231,17 @@ function modALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=fals
                 z = z′
                 if x′ ∉ X
                     rₒ, cₒ = Tuple(Rₒ)
-                    Πᵣ[rₒ, :] .+= σ₂
-                    Πᵣ[:, cₒ] .+= σ₂
+                    Πᵣ[rₒ, :] .+= (σ₂ / 2) / cᵣ
+                    Πᵣ[:, cₒ] .+= (σ₂ / 2) / rᵣ
+                    Πᵣ[rₒ, cₒ] += σ₂
+                    Cᵣ[rₒ, :] .+= 0.5
+                    Cᵣ[:, cₒ] .+= 0.5
                     rₒ, cₒ = Tuple(Iₒ)
-                    Πᵢ[rₒ, :] .+= σ₂
-                    Πᵢ[:, cₒ] .+= σ₂
+                    Πᵢ[rₒ, :] .+= (σ₂ / 2) / cᵢ
+                    Πᵢ[:, cₒ] .+= (σ₂ / 2) / rᵢ
+                    Πᵢ[rₒ, cₒ] += σ₂
+                    Cᵢ[rₒ, :] .+= 0.5
+                    Cᵢ[:, cₒ] .+= 0.5
                 end
                 φ = φ
             # Step 2.3.5: Else accept the new solution with simulated annealing acceptance criterion. Further, if the new solution is also newly found then update operator scores by σ₃.
@@ -240,11 +252,17 @@ function modALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=fals
                     z = z′
                     if x′ ∉ X
                         rₒ, cₒ = Tuple(Rₒ)
-                        Πᵣ[rₒ, :] .+= σ₃
-                        Πᵣ[:, cₒ] .+= σ₃
+                        Πᵣ[rₒ, :] .+= (σ₃ / 2) / cᵣ
+                        Πᵣ[:, cₒ] .+= (σ₃ / 2) / rᵣ
+                        Πᵣ[rₒ, cₒ] += σ₃
+                        Cᵣ[rₒ, :] .+= 0.5
+                        Cᵣ[:, cₒ] .+= 0.5
                         rₒ, cₒ = Tuple(Iₒ)
-                        Πᵢ[rₒ, :] .+= σ₃
-                        Πᵢ[:, cₒ] .+= σ₃
+                        Πᵢ[rₒ, :] .+= (σ₃ / 2) / cᵢ
+                        Πᵢ[:, cₒ] .+= (σ₃ / 2) / rᵢ
+                        Πᵢ[rₒ, cₒ] += σ₃
+                        Cᵢ[rₒ, :] .+= 0.5
+                        Cᵢ[:, cₒ] .+= 0.5 
                     end
                     φ = φ
                 end
@@ -283,6 +301,8 @@ function modALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=fals
         Z[1 + u * (n + 1)] = z
     end
     # Step 3: Display the convergence plot and return the best solution
+    println("Pr:", Pᵣ)
+    println("Pi:", Pᵢ)
     if !mute display(pltcnv(X,Z)) end
     return s⃰
 end
