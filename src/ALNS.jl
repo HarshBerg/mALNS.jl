@@ -189,8 +189,8 @@ function modALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=fals
         Cᵣ .= 0; Πᵣ .= 0
         Cᵢ .= 0; Πᵢ .= 0
         # Step 2.2: Update selection probability for every removal and insertion operator
-        for r ∈ 1:rᵣ for c ∈ 1:cᵣ Pᵣ[r,c] = Wᵣ[r,c] / sum(Wᵣ[r,:]) end end
-        for r ∈ 1:rᵢ for c ∈ 1:cᵢ Pᵢ[r,c] = Wᵢ[r,c] / sum(Wᵢ[r,:]) end end
+        for r ∈ 1:rᵣ for c ∈ 1:cᵣ Pᵣ[r,c] = Wᵣ[r,c] / sum(Wᵣ) end end
+        for r ∈ 1:rᵢ for c ∈ 1:cᵢ Pᵢ[r,c] = Wᵢ[r,c] / sum(Wᵢ) end end
         # Step 2.3: Loop over iterations within the segment
         for v ∈ 1:n
             # Step 2.3.1: Randomly select a removal and an insertion operator based on operator selection probabilities, and consequently update count for the selected operators
@@ -199,7 +199,8 @@ function modALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=fals
             Cᵣ[Rₒ] += 1
             Cᵢ[Iₒ] += 1
             # Step 2.3.2: Using the selected removal and insertion operators destroy and repair the current solution to develop a new solution
-            q = Int(floor((1 - rand(rng) * min(e̲, μ̲  * e) + rand(rng) * min(e̅, μ̅  * e))))
+            η = rand(rng)
+            q = Int(floor((1 - η) * min(e̲, μ̲  * e) + η * min(e̅, μ̅  * e)))
             s′ = deepcopy(s)
             remove!(rng, q, s′, Ψᵣ[Rₒ])
             insert!(rng, s′, Ψᵢ[Iₒ])
@@ -249,9 +250,9 @@ function modALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=fals
                 end
             end
             x = x′
-            t = max(t * θ, ω̲ * z⃰/log(1/τ̲))
             X[1 + (u - 1) * (n + 1) + v] = x
             Z[1 + (u - 1) * (n + 1) + v] = z
+            t = max(t * θ, ω̲ * z⃰/log(1/τ̲))
             if !mute next!(p) end
         end
         # Step 2.4: Update weights for every removal and insertion operator (module)
