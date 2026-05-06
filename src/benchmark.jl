@@ -6,7 +6,7 @@ using DataFrames
 
 let
     # Define instances
-    instances = ["X-n209-k16"]
+    instances = ["X-n411-k19", "X-n420-k130", "X-n439-k37", "X-n469-k138", "X-n480-k70", "X-n502-k39", "X-n524-k153", "X-n548-k50", "X-n561-k42", "X-n586-k159"]
     # Define random number generator seeds
     seeds = [1234, 1729, 2310, 3103, 9999, 4200, 5544, 7788, 8080, 6000]
     # Dataframes to store solution quality and run time
@@ -37,7 +37,7 @@ let
             # Define ALNS parameters
             x = max(100, lastindex(s₁.G.N))
             χ = ALNSparameters(
-                j   =   x                       ,
+                j   =   100                       ,
                 k   =   10                      ,
                 n   =   x                       ,
                 m   =   100x                    ,
@@ -63,7 +63,7 @@ let
                         ]                       ,
                 σ₁  =   15.0                    ,
                 σ₂  =   10.0                    ,
-                σ₃  =   3.0                     ,
+                σ₃  =   3.0                    ,
                 μ̲   =   0.05                    ,
                 e̲   =   5                       ,
                 μ̅   =   0.3                     ,
@@ -76,7 +76,7 @@ let
                 ρ   =   0.1
             );
             # Run ALNS and fetch best solution
-            t₂ = @elapsed s₂ = modALNS(rng, χ, s₁);
+            t₂ = @elapsed s₂ = conALNS(rng, χ, s₁);
             # Visualize best solution
             display(visualize(s₂))
             # Fetch solution characteristics
