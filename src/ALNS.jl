@@ -292,6 +292,11 @@ function modALNS(rng::AbstractRNG, χ::ALNSparameters, sₒ::Solution; mute=fals
         X[1 + u * (n + 1)] = x
         Z[1 + u * (n + 1)] = z
     end
+    # print probalities of primary and secondary modules for removal and insertion operators
+    #println("Removal Operator Probabilities (Primary): ", Pᵣₚ)
+    #println("Removal Operator Probabilities (Secondary): ", Pᵣₛ)
+    #println("Insertion Operator Probabilities (Primary): ", Pᵢₚ)
+    #println("Insertion Operator Probabilities (Secondary): ", Pᵢₛ)
     # Step 3: Display the convergence plot and return the best solution
     if !mute display(pltcnv(X,Z)) end
     return s⃰
