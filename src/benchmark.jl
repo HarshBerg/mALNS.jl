@@ -6,7 +6,9 @@ using DataFrames
 
 let
     # Define instances
-    instances = ["X-n411-k19", "X-n420-k130", "X-n439-k37", "X-n469-k138", "X-n480-k70", "X-n502-k39", "X-n524-k153", "X-n548-k50", "X-n561-k42", "X-n586-k159"]
+    instances = ["X-n411-k19", "X-n420-k130", "X-n439-k37", "X-n469-k138", "X-n480-k70", "X-n502-k39", "X-n524-k153", "X-n548-k50", "X-n561-k42", "X-n586-k159",
+                 "X-n613-k62", "X-n627-k43", "X-n641-k35", "X-n655-k131", "X-n670-k130", "X-n701-k44", "X-n716-k35", "X-n733-k159", "X-n749-k98", "X-n766-k71",
+                 "X-n801-k40", "X-n819-k171", "X-n856-k95", "X-n876-k59", "X-n895-k37", "X-n916-k207", "X-n936-k151", "X-n957-k87", "X-n979-k58", "X-n1001-k43"]
     # Define random number generator seeds
     seeds = [1234, 1729, 2310, 3103, 9999, 4200, 5544, 7788, 8080, 6000]
     # Dataframes to store solution quality and run time
